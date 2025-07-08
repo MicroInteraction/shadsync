@@ -1016,10 +1016,22 @@
       }, '*');
     }
 
-    // Apply group replacement - replace variable for all objects in a group
-    function applyGroupReplacement(groupIndex, selectId) {
+    // Make sure the function is available globally
+    window.applyGroupReplacement = function(groupIndex, selectId) {
+      console.log('applyGroupReplacement called:', groupIndex, selectId);
+      console.log('Available functions:', typeof updateSelectedVariable, typeof applySelectedVariable);
+      console.log('Window object keys:', Object.keys(window));
+      
       const selectElement = document.getElementById(selectId);
+      if (!selectElement) {
+        console.error('Select element not found:', selectId);
+        console.log('Available elements with select-group prefix:', document.querySelectorAll('[id^="select-group"]'));
+        showStatus('Dropdown not found', 'error');
+        return;
+      }
+      
       const newVariableId = selectElement.value;
+      console.log('Selected variable ID:', newVariableId);
       
       if (!newVariableId) {
         showStatus('Please select a variable first', 'error');
@@ -1027,15 +1039,19 @@
       }
       
       if (!window.nonShadSyncGroups || !window.nonShadSyncGroups[groupIndex]) {
+        console.error('Group data not found:', window.nonShadSyncGroups, groupIndex);
         showStatus('Group data not found', 'error');
         return;
       }
       
       const group = window.nonShadSyncGroups[groupIndex];
+      console.log('Processing group:', group);
       let replacementCount = 0;
       
       // Replace variable for each object in the group
-      group.objects.forEach(obj => {
+      group.objects.forEach((obj, index) => {
+        console.log(`Replacing object ${index + 1}:`, obj.node.id, obj.property, newVariableId);
+        
         parent.postMessage({
           pluginMessage: {
             type: 'replace-variable',
@@ -1053,10 +1069,24 @@
       
       // Re-run detection after a short delay to update the UI
       setTimeout(() => {
+        console.log('Re-running variable check...');
         parent.postMessage({
           pluginMessage: { type: 'check-variables' }
         }, '*');
       }, 1000);
+    };
+
+    // Initialize when page loads
+    window.addEventListener('load', function() {
+      console.log('Page loaded. Available functions:');
+      console.log('- applyGroupReplacement:', typeof applyGroupReplacement);
+      console.log('- applySelectedVariable:', typeof applySelectedVariable);
+      console.log('- updateSelectedVariable:', typeof updateSelectedVariable);
+    });
+
+    // Apply group replacement - replace variable for all objects in a group
+    function applyGroupReplacement(groupIndex, selectId) {
+      return window.applyGroupReplacement(groupIndex, selectId);
     }
 
   </script>

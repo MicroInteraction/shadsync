@@ -479,8 +479,11 @@ async function getExistingCollections() {
 
 // Handle variable replacement
 async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, strokeIndex = 0) {
+  console.log('replaceVariable called:', nodeId, property, newVariableId, fillIndex, strokeIndex);
+  
   const node = figma.getNodeById(nodeId);
   if (!node) {
+    console.error('Node not found:', nodeId);
     figma.ui.postMessage({
       type: 'error',
       message: 'Node not found'
@@ -490,6 +493,7 @@ async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, s
   
   const variable = figma.variables.getVariableById(newVariableId);
   if (!variable) {
+    console.error('Variable not found:', newVariableId);
     figma.ui.postMessage({
       type: 'error',
       message: 'Variable not found'
@@ -497,8 +501,11 @@ async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, s
     return;
   }
   
+  console.log('Found node and variable:', node.name, variable.name);
+  
   try {
     if (property === 'fill' && 'fills' in node && node.fills) {
+      console.log('Processing fill replacement');
       // Clone fills array and update the specific fill
       const fills = node.fills.slice(); // Create a copy
       const targetIndex = Math.min(fillIndex, fills.length - 1);
@@ -508,8 +515,12 @@ async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, s
         newFill.boundVariables = { color: { type: 'VARIABLE', id: newVariableId } };
         fills[targetIndex] = newFill;
         node.fills = fills;
+        console.log('Fill replaced successfully');
+      } else {
+        console.error('Invalid fill index or fill type:', targetIndex, fills[targetIndex]);
       }
     } else if (property === 'stroke' && 'strokes' in node && node.strokes) {
+      console.log('Processing stroke replacement');
       // Clone strokes array and update the specific stroke
       const strokes = node.strokes.slice(); // Create a copy
       const targetIndex = Math.min(strokeIndex, strokes.length - 1);
@@ -519,7 +530,12 @@ async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, s
         newStroke.boundVariables = { color: { type: 'VARIABLE', id: newVariableId } };
         strokes[targetIndex] = newStroke;
         node.strokes = strokes;
+        console.log('Stroke replaced successfully');
+      } else {
+        console.error('Invalid stroke index or stroke type:', targetIndex, strokes[targetIndex]);
       }
+    } else {
+      console.error('Invalid property or node type:', property, node.type);
     }
     
     figma.ui.postMessage({
@@ -527,10 +543,11 @@ async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, s
       message: `Applied ${variable.name} to ${node.name}`
     });
     
-    // Refresh the analysis
-    await checkUsedVariables();
+    // Don't refresh here automatically as we'll refresh from the UI
+    console.log('Variable replacement completed');
     
   } catch (error) {
+    console.error('Error during variable replacement:', error);
     figma.ui.postMessage({
       type: 'error',
       message: `Failed to apply variable: ${error.message}`
