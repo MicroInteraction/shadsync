@@ -1389,7 +1389,7 @@
         if (item.allSuggestions && item.allSuggestions.length > 0) {
           html += `
             <div class="suggestion-row">
-              <div class="color-preview" style="${colorStyle}"></div>
+              ${previewElement}
               <select class="select-dropdown" id="select-${index}-unassigned" onchange="updateSelectedVariable('${item.node.id}', '${item.property}', this.value, ${item.fillIndex || 0}, ${item.strokeIndex || 0})">
                 <option value="">Choose shadsync variable...</option>
           `;
