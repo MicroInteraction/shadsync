@@ -625,6 +625,10 @@ async function checkUsedVariables() {
   }
   
   
+  // Detect orphaned variables by analyzing visual properties
+  console.log('Starting orphaned variables detection...');
+  const orphanedObjects = await detectOrphanedVariables(nodesToAnalyze, shadSyncCollection, shadSyncVariables);
+  
   // Convert grouped data to array format
   const groupedNonShadSyncArray = Object.values(groupedNonShadSync);
   const groupedAllVariablesArray = Object.values(groupedAllVariables);
@@ -632,7 +636,8 @@ async function checkUsedVariables() {
   console.log('Sending results to UI:', {
     nonShadSyncCount: groupedNonShadSyncArray.length,
     allVariableCount: groupedAllVariablesArray.length,
-    unassignedCount: unassignedObjects.length
+    unassignedCount: unassignedObjects.length,
+    orphanedCount: orphanedObjects.length
   });
   
   figma.ui.postMessage({
@@ -644,6 +649,7 @@ async function checkUsedVariables() {
       nonShadSyncVariables: groupedNonShadSyncArray, // Send grouped data
       allVariableAssigned: groupedAllVariablesArray, // All variable-assigned objects
       unassignedObjects,
+      orphanedObjects, // New: Objects with visual properties matching existing variables
       shadSyncVariables,
       analyzedNodes: nodesToAnalyze.length,
       hasSelection: selection.length > 0,
@@ -651,6 +657,7 @@ async function checkUsedVariables() {
         nonShadSyncCount: groupedNonShadSyncArray.length, // Count of unique variables, not objects
         allVariableCount: groupedAllVariablesArray.length, // Count of all variable-assigned unique variables
         unassignedCount: unassignedObjects.length,
+        orphanedCount: orphanedObjects.length, // New: Count of orphaned objects
         shadSyncCount: variablesByCollection['shadsync theme'] ? variablesByCollection['shadsync theme'].length : 0
       }
     }
@@ -1287,3 +1294,188 @@ async function setRadiusPreset(baseRemValue) {
 
 // Initialize
 getExistingCollections();
+
+// Function to detect orphaned variables by analyzing visual properties
+async function detectOrphanedVariables(nodesToAnalyze, shadSyncCollection, shadSyncVariables) {
+  console.log('Starting orphaned variables detection...');
+  
+  const orphanedObjects = [];
+  
+  // Get all variable values from the shadsync collection for comparison
+  const variableValues = await getVariableValues(shadSyncVariables, shadSyncCollection);
+  
+  for (const node of nodesToAnalyze) {
+    if (node.type === 'GROUP' || node.type === 'SECTION') continue;
+    
+    const nodeInfo = {
+      id: node.id,
+      name: node.name,
+      type: node.type
+    };
+    
+    // Check fills for orphaned color variables
+    if ('fills' in node && node.fills && Array.isArray(node.fills)) {
+      for (let i = 0; i < node.fills.length; i++) {
+        const fill = node.fills[i];
+        if (fill.type === 'SOLID' && fill.visible !== false && fill.color) {
+          // Skip if already has a variable bound
+          if (fill.boundVariables && fill.boundVariables.color) continue;
+          
+          // Look for matching color values in shadsync variables
+          const colorMatch = findColorValueMatch(fill.color, variableValues.colors);
+          if (colorMatch) {
+            orphanedObjects.push({
+              node: nodeInfo,
+              property: 'fill',
+              fillIndex: i,
+              color: fill.color,
+              detectedVariable: colorMatch,
+              reason: 'Color value matches existing variable',
+              confidence: calculateColorConfidence(fill.color, colorMatch.value)
+            });
+          }
+        }
+      }
+    }
+    
+    // Check strokes for orphaned color variables
+    if ('strokes' in node && node.strokes && Array.isArray(node.strokes)) {
+      for (let i = 0; i < node.strokes.length; i++) {
+        const stroke = node.strokes[i];
+        if (stroke.type === 'SOLID' && stroke.visible !== false && stroke.color) {
+          // Skip if already has a variable bound
+          if (stroke.boundVariables && stroke.boundVariables.color) continue;
+          
+          // Look for matching color values in shadsync variables
+          const colorMatch = findColorValueMatch(stroke.color, variableValues.colors);
+          if (colorMatch) {
+            orphanedObjects.push({
+              node: nodeInfo,
+              property: 'stroke',
+              strokeIndex: i,
+              color: stroke.color,
+              detectedVariable: colorMatch,
+              reason: 'Color value matches existing variable',
+              confidence: calculateColorConfidence(stroke.color, colorMatch.value)
+            });
+          }
+        }
+      }
+    }
+    
+    // Check corner radius for orphaned radius variables
+    if ('cornerRadius' in node && typeof node.cornerRadius === 'number' && node.cornerRadius > 0) {
+      // Skip if already has a variable bound
+      if (node.boundVariables && node.boundVariables.cornerRadius) continue;
+      
+      // Look for matching radius values in shadsync variables
+      const radiusMatch = findRadiusValueMatch(node.cornerRadius, variableValues.radius);
+      if (radiusMatch) {
+        orphanedObjects.push({
+          node: nodeInfo,
+          property: 'cornerRadius',
+          value: node.cornerRadius,
+          detectedVariable: radiusMatch,
+          reason: 'Radius value matches existing variable',
+          confidence: calculateRadiusConfidence(node.cornerRadius, radiusMatch.value)
+        });
+      }
+    }
+  }
+  
+  console.log(`Found ${orphanedObjects.length} potentially orphaned variables`);
+  return orphanedObjects;
+}
+
+// Get actual values of all variables in a collection
+async function getVariableValues(shadSyncVariables, collection) {
+  const values = {
+    colors: {},
+    radius: {}
+  };
+  
+  for (const variable of shadSyncVariables) {
+    try {
+      // Get the variable object to access its values
+      const figmaVariable = figma.variables.getVariableById(variable.id);
+      if (!figmaVariable) continue;
+      
+      // Get the value for the first mode (usually light mode)
+      const modes = Object.keys(figmaVariable.valuesByMode);
+      if (modes.length === 0) continue;
+      
+      const value = figmaVariable.valuesByMode[modes[0]];
+      
+      if (variable.type === 'COLOR' && value && typeof value === 'object') {
+        values.colors[variable.id] = {
+          id: variable.id,
+          name: variable.name,
+          value: value
+        };
+      } else if (variable.type === 'FLOAT' && variable.name.includes('radius') && typeof value === 'number') {
+        values.radius[variable.id] = {
+          id: variable.id,
+          name: variable.name,
+          value: value
+        };
+      }
+    } catch (error) {
+      console.warn(`Failed to get value for variable ${variable.name}:`, error);
+    }
+  }
+  
+  return values;
+}
+
+// Find color value matches with tolerance
+function findColorValueMatch(targetColor, colorVariables) {
+  const tolerance = 0.02; // Small tolerance for floating point comparison
+  
+  for (const colorVar of Object.values(colorVariables)) {
+    const varColor = colorVar.value;
+    
+    // Compare RGB values with tolerance
+    if (Math.abs(targetColor.r - varColor.r) < tolerance &&
+        Math.abs(targetColor.g - varColor.g) < tolerance &&
+        Math.abs(targetColor.b - varColor.b) < tolerance) {
+      return colorVar;
+    }
+  }
+  
+  return null;
+}
+
+// Find radius value matches with tolerance
+function findRadiusValueMatch(targetRadius, radiusVariables) {
+  const tolerance = 0.5; // Small tolerance for radius values
+  
+  for (const radiusVar of Object.values(radiusVariables)) {
+    if (Math.abs(targetRadius - radiusVar.value) < tolerance) {
+      return radiusVar;
+    }
+  }
+  
+  return null;
+}
+
+// Calculate confidence score for color matches
+function calculateColorConfidence(color1, color2) {
+  const rDiff = Math.abs(color1.r - color2.r);
+  const gDiff = Math.abs(color1.g - color2.g);
+  const bDiff = Math.abs(color1.b - color2.b);
+  const avgDiff = (rDiff + gDiff + bDiff) / 3;
+  
+  // Higher confidence for smaller differences
+  return Math.max(0, 1 - (avgDiff * 10));
+}
+
+// Calculate confidence score for radius matches
+function calculateRadiusConfidence(radius1, radius2) {
+  const diff = Math.abs(radius1 - radius2);
+  
+  // Exact match gets 1.0, small differences get lower scores
+  if (diff === 0) return 1.0;
+  if (diff <= 0.5) return 0.9;
+  if (diff <= 1) return 0.7;
+  return Math.max(0, 0.5 - (diff * 0.1));
+}

@@ -449,176 +449,6 @@
       font-size: 12px;
       font-family: 'SF Mono', Monaco, monospace;
     }
-
-    .variable-group {
-      background: #ffffff;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      overflow: hidden;
-    }
-
-    .variable-group-header {
-      background: #fff3f0;
-      padding: 12px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .affected-objects {
-      background: #fafafa;
-      padding: 12px;
-    }
-
-    .object-item {
-      display: flex;
-      align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .object-item:last-child {
-      border-bottom: none;
-    }
-
-    .group-replacement {
-      margin-top: 12px;
-    }
-
-    .suggestion-item {
-      background: #f8f9fa;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-
-    .suggestion-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-    }
-
-    .object-info {
-      font-size: 12px;
-      color: #666;
-      font-family: 'SF Mono', Monaco, monospace;
-    }
-
-    .current-variable {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 8px;
-    }
-
-    .suggestion-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      background: white;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
-    }
-
-    .color-preview {
-      width: 16px;
-      height: 16px;
-      border-radius: 3px;
-      border: 1px solid #ccc;
-      flex-shrink: 0;
-    }
-
-    .variable-name {
-      flex: 1;
-      font-size: 12px;
-      font-family: 'SF Mono', Monaco, monospace;
-      color: #333;
-    }
-
-    .replace-btn {
-      padding: 4px 8px;
-      font-size: 11px;
-      background: #ff6b35;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .replace-btn:hover {
-      background: #ff5722;
-    }
-
-    .replace-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .no-suggestion {
-      color: #999;
-      font-style: italic;
-      font-size: 12px;
-    }
-
-    .suggestion-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .dropdown-suggestions {
-      margin-top: 8px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      background: white;
-      max-height: 150px;
-      overflow-y: auto;
-      display: none;
-    }
-
-    .dropdown-suggestions.show {
-      display: block;
-    }
-
-    .dropdown-item {
-      padding: 6px 8px;
-      cursor: pointer;
-      font-size: 11px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .dropdown-item:last-child {
-      border-bottom: none;
-    }
-
-    .dropdown-item:hover {
-      background: #f5f5f5;
-    }
-
-    .suggestion-score {
-      font-size: 10px;
-      color: #999;
-      margin-left: auto;
-    }
-
-    .current-selection {
-      background: #e3f2fd !important;
-      color: #1976d2;
-    }
-
-    .select-dropdown {
-      width: 100%;
-      padding: 4px 8px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      background: white;
-      font-size: 12px;
-      font-family: 'SF Mono', Monaco, monospace;
-    }
     
     /* Modern Detect Interface Styles */
     .scan-section {
@@ -794,6 +624,36 @@
       flex-shrink: 0;
     }
 
+    /* Orphaned Variables Styles */
+    .suggestion-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+    }
+    
+    .suggestion-content {
+      flex: 1;
+    }
+    
+    .suggestion-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1F2937;
+      margin-bottom: 2px;
+    }
+    
+    .suggestion-description {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    
+    .suggestion-reason {
+      font-size: 10px;
+      color: #999;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -913,6 +773,15 @@
           </p>
           
           <div class="suggestion-list" id="non-shadsync-list"></div>
+        </div>
+        
+        <!-- Orphaned Variables Section -->
+        <div id="orphaned-section" class="hidden">
+          <div class="section-title" style="color: #e91e63;">🔗 Orphaned Variables Detected</div>
+          <p style="font-size: 11px; color: #666; margin-bottom: 12px;">
+            These objects have visual properties that match existing variables but aren't connected. This often happens after copy-pasting from other projects:
+          </p>
+          <div class="suggestion-list" id="orphaned-list"></div>
         </div>
         
         <!-- All Variable-Assigned Objects Section -->
@@ -1073,6 +942,8 @@
           const summary = msg.data.scanSummary;
           if (summary.nonShadSyncCount > 0) {
             showStatus(`Found ${summary.nonShadSyncCount} non-shadsync variable${summary.nonShadSyncCount !== 1 ? 's' : ''} in use`, 'error');
+          } else if (summary.orphanedCount > 0) {
+            showStatus(`Found ${summary.orphanedCount} orphaned variable${summary.orphanedCount !== 1 ? 's' : ''} from copy-paste operations`, 'error');
           } else if (summary.allVariableCount > 0) {
             showStatus(`Found ${summary.allVariableCount} variable${summary.allVariableCount !== 1 ? 's' : ''} in use (review for optimization)`, 'info');
           } else if (summary.unassignedCount > 0) {
@@ -1090,6 +961,7 @@
       
       // Show/hide sections based on data
       const nonShadSyncSection = document.getElementById('non-shadsync-section');
+      const orphanedSection = document.getElementById('orphaned-section');
       const allVariablesSection = document.getElementById('all-variables-section');
       const unassignedSection = document.getElementById('unassigned-section');
       const usageSummarySection = document.getElementById('usage-summary');
@@ -1098,10 +970,11 @@
       // Handle Replace All button state - enable if any variables can be replaced
       const replaceAllBtn = document.getElementById('replace-all-btn');
       const hasNonShadSync = data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0;
+      const hasOrphaned = data.orphanedObjects && data.orphanedObjects.length > 0;
       const hasAllVariablesWithSuggestions = data.allVariableAssigned && 
         data.allVariableAssigned.some(group => group.suggestion && group.suggestion.id);
       
-      if (hasNonShadSync || hasAllVariablesWithSuggestions) {
+      if (hasNonShadSync || hasOrphaned || hasAllVariablesWithSuggestions) {
         if (replaceAllBtn) {
           replaceAllBtn.disabled = false;
           replaceAllBtn.style.opacity = '1';
@@ -1119,6 +992,14 @@
         nonShadSyncSection.classList.remove('hidden');
       } else {
         nonShadSyncSection.classList.add('hidden');
+      }
+      
+      // Priority 1.5: Orphaned Variables (copy-paste artifacts)
+      if (data.orphanedObjects && data.orphanedObjects.length > 0) {
+        displayOrphanedObjects(data.orphanedObjects);
+        orphanedSection.classList.remove('hidden');
+      } else {
+        orphanedSection.classList.add('hidden');
       }
       
       // Priority 2: All Variable-Assigned Objects (for review and optimization)
@@ -1147,6 +1028,7 @@
       
       // Show "All Clear" message if no issues found
       if ((!data.nonShadSyncVariables || data.nonShadSyncVariables.length === 0) && 
+          (!data.orphanedObjects || data.orphanedObjects.length === 0) &&
           (!data.unassignedObjects || data.unassignedObjects.length === 0)) {
         allClearMessage.classList.remove('hidden');
       } else {
@@ -1719,6 +1601,27 @@
         });
       }
       
+      // Process orphaned objects
+      if (window.orphanedObjects && window.orphanedObjects.length > 0) {
+        window.orphanedObjects.forEach((item, index) => {
+          if (item.detectedVariable && item.detectedVariable.id) {
+            console.log(`Connecting orphaned object ${index + 1}:`, item.node.id, item.property, item.detectedVariable.id);
+            
+            parent.postMessage({
+              pluginMessage: {
+                type: 'replace-variable',
+                nodeId: item.node.id,
+                property: item.property,
+                newVariableId: item.detectedVariable.id,
+                fillIndex: item.fillIndex || 0,
+                strokeIndex: item.strokeIndex || 0
+              }
+            }, '*');
+            totalReplacements++;
+          }
+        });
+      }
+      
       if (totalReplacements > 0) {
         showStatus(`Replacing ${totalReplacements} objects across ${groupsWithSuggestions} variable groups...`, 'info');
         
@@ -1829,15 +1732,42 @@
       }, 1000);
     };
 
-    // Apply group replacement for all variable-assigned objects
-    function applyAllVariableGroupReplacement(groupIndex, selectId) {
-      return window.applyAllVariableGroupReplacement(groupIndex, selectId);
-    }
-
-    // Apply group replacement - replace variable for all objects in a group
-    function applyGroupReplacement(groupIndex, selectId) {
-      return window.applyGroupReplacement(groupIndex, selectId);
-    }
+    // Apply orphaned variable replacement
+    window.applyOrphanedReplacement = function(index) {
+      console.log('applyOrphanedReplacement called with index:', index);
+      
+      if (!window.orphanedObjects || !window.orphanedObjects[index]) {
+        console.error('Orphaned object not found at index:', index);
+        showStatus('Object not found', 'error');
+        return;
+      }
+      
+      const item = window.orphanedObjects[index];
+      const variableId = item.detectedVariable.id;
+      
+      console.log('Connecting orphaned object:', item.node.id, item.property, variableId);
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'replace-variable',
+          nodeId: item.node.id,
+          property: item.property,
+          newVariableId: variableId,
+          fillIndex: item.fillIndex || 0,
+          strokeIndex: item.strokeIndex || 0
+        }
+      }, '*');
+      
+      showStatus(`Connecting ${item.node.name} to ${item.detectedVariable.name}...`, 'info');
+      
+      // Re-run detection after a short delay to update the UI
+      setTimeout(() => {
+        console.log('Re-running variable check...');
+        parent.postMessage({
+          pluginMessage: { type: 'check-variables' }
+        }, '*');
+      }, 1000);
+    };
 
     // Initialize when page loads
     window.addEventListener('load', function() {
