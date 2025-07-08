@@ -189,7 +189,11 @@ async function handleCssConversion(css, collectionName = 'shadsync theme') {
   let updatedCount = 0;
   
   // Get all variable names from both light and dark
-  const allVariableNames = new Set([...Object.keys(light), ...Object.keys(dark)]);
+  const lightKeys = Object.keys(light);
+  const darkKeys = Object.keys(dark);
+  const allVariableNames = new Set();
+  lightKeys.forEach(key => allVariableNames.add(key));
+  darkKeys.forEach(key => allVariableNames.add(key));
   
   for (const varName of allVariableNames) {
     // Check if variable already exists
@@ -255,14 +259,16 @@ async function checkUsedVariables() {
   const selection = figma.currentPage.selection;
   let nodesToAnalyze = [];
   
-  if (selection.length > 0) {
-    // If something is selected, analyze selected objects and their children
-    for (const node of selection) {
-      nodesToAnalyze.push(node);
-      if ('children' in node) {
-        nodesToAnalyze.push(...node.findAll());
+  if (selection.length > 0) {      // If something is selected, analyze selected objects and their children
+      for (const node of selection) {
+        nodesToAnalyze.push(node);
+        if ('children' in node) {
+          const childNodes = node.findAll();
+          for (const childNode of childNodes) {
+            nodesToAnalyze.push(childNode);
+          }
+        }
       }
-    }
   } else {
     // If nothing selected, analyze entire page
     nodesToAnalyze = figma.currentPage.findAll();
@@ -509,12 +515,28 @@ function getSortedSuggestions(name, shadSyncVariables, color = null, collection 
   
   // First, try name-based matching
   const nameMatches = findAllNameMatches(name, shadSyncVariables);
-  suggestions.push(...nameMatches.map(match => ({ ...match, matchType: 'name', score: match.score })));
+  nameMatches.forEach(match => {
+    suggestions.push({
+      id: match.id,
+      name: match.name,
+      type: match.type,
+      matchType: 'name',
+      score: match.score
+    });
+  });
   
   // If we have color information, try color-based matching
   if (color && collection) {
     const colorMatches = findAllColorMatches(color, shadSyncVariables, collection);
-    suggestions.push(...colorMatches.map(match => ({ ...match, matchType: 'color', score: match.score })));
+    colorMatches.forEach(match => {
+      suggestions.push({
+        id: match.id,
+        name: match.name,
+        type: match.type,
+        matchType: 'color',
+        score: match.score
+      });
+    });
   }
   
   // Remove duplicates and sort by score
@@ -578,7 +600,12 @@ function findAllNameMatches(variableName, shadSyncVariables) {
     }
     
     if (score > 0) {
-      matches.push({ ...variable, score });
+      matches.push({
+        id: variable.id,
+        name: variable.name,
+        type: variable.type,
+        score: score
+      });
     }
   }
   
@@ -610,7 +637,12 @@ function findAllColorMatches(color, shadSyncVariables, collection) {
     else if (distance < 0.5) score = 30;
     
     if (score > 0) {
-      matches.push({ ...variable, score });
+      matches.push({
+        id: variable.id,
+        name: variable.name,
+        type: variable.type,
+        score: score
+      });
     }
   }
   
