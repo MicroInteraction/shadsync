@@ -435,10 +435,9 @@ async function replaceVariable(nodeId, property, newVariableId) {
       const fillIndex = fills.findIndex(f => f.type === 'SOLID');
       
       if (fillIndex !== -1) {
-        fills[fillIndex] = {
-          ...fills[fillIndex],
-          boundVariables: { color: { type: 'VARIABLE', id: newVariableId } }
-        };
+        const newFill = Object.assign({}, fills[fillIndex]);
+        newFill.boundVariables = { color: { type: 'VARIABLE', id: newVariableId } };
+        fills[fillIndex] = newFill;
         node.fills = fills;
       }
     } else if (property === 'stroke' && 'strokes' in node && node.strokes) {
@@ -447,10 +446,9 @@ async function replaceVariable(nodeId, property, newVariableId) {
       const strokeIndex = strokes.findIndex(s => s.type === 'SOLID');
       
       if (strokeIndex !== -1) {
-        strokes[strokeIndex] = {
-          ...strokes[strokeIndex],
-          boundVariables: { color: { type: 'VARIABLE', id: newVariableId } }
-        };
+        const newStroke = Object.assign({}, strokes[strokeIndex]);
+        newStroke.boundVariables = { color: { type: 'VARIABLE', id: newVariableId } };
+        strokes[strokeIndex] = newStroke;
         node.strokes = strokes;
       }
     }

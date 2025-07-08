@@ -215,6 +215,14 @@
       display: none !important;
     }
 
+    .tab-content {
+      display: block;
+    }
+
+    .tab-content.hidden {
+      display: none !important;
+    }
+
     .loading {
       opacity: 0.6;
       pointer-events: none;
@@ -404,11 +412,19 @@
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         
-        // Show corresponding content
+        // Hide all tab content
         document.querySelectorAll('.tab-content').forEach(content => {
           content.classList.add('hidden');
         });
-        document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+        
+        // Show selected tab content
+        const targetTab = document.getElementById(`${tabName}-tab`);
+        if (targetTab) {
+          targetTab.classList.remove('hidden');
+        }
+        
+        // Clear status when switching tabs
+        hideStatus();
       });
     });
 
