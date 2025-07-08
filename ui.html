@@ -1169,36 +1169,40 @@
       
       allVariableAssigned.forEach((variableGroup, groupIndex) => {
         const isShadsyncVariable = variableGroup.currentVariable.collection === 'shadsync theme';
-        const borderColor = isShadsyncVariable ? '#4caf50' : '#2196f3';
-        const badgeColor = isShadsyncVariable ? '#4caf50' : '#2196f3';
+        const isReplaced = variableGroup.replaced === true;
+        const borderColor = isReplaced ? '#4caf50' : (isShadsyncVariable ? '#4caf50' : '#ff6b35');
+        const backgroundColor = isReplaced ? '#f1f8e9' : '#f8f9fa';
+        const badgeColor = isReplaced ? '#4caf50' : (isShadsyncVariable ? '#4caf50' : '#ff6b35');
+        const textColor = isReplaced ? '#2e7d32' : '#333';
         
-        // Variable group header
+        // Use the cleaner suggestion-item layout
         html += `
-          <div class="variable-group" style="border-left: 3px solid ${borderColor}; margin-bottom: 16px; background: #fff;">
-            <div class="variable-group-header" style="background: ${isShadsyncVariable ? '#f1f8e9' : '#e3f2fd'}; padding: 12px; border-radius: 6px 6px 0 0;">
-              <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 8px;">
-                <div>
-                  <span style="color: ${borderColor}; font-weight: 600;">Variable:</span> 
-                  <strong>${variableGroup.currentVariable.name}</strong> 
-                  <span style="color: #666;">from "${variableGroup.currentVariable.collection}"</span>
-                  ${isShadsyncVariable ? '<span style="color: #4caf50; font-size: 12px;">✅ Already ShadSync</span>' : ''}
-                </div>
-                <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+          <div class="suggestion-item" style="border-left: 4px solid ${borderColor}; background: ${backgroundColor};">
+            <div class="suggestion-header">
+              <div class="object-info" style="color: ${textColor};">
+                Variable: <strong>${variableGroup.currentVariable.name}</strong> from "${variableGroup.currentVariable.collection}"
+                <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; margin-left: 8px;">
                   ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
                 </span>
+                ${isReplaced ? '<span style="color: #4caf50; font-size: 12px; margin-left: 8px;">✅ Replaced</span>' : ''}
+                ${isShadsyncVariable && !isReplaced ? '<span style="color: #4caf50; font-size: 12px; margin-left: 8px;">✅ Already ShadSync</span>' : ''}
               </div>
-              
-              <!-- Replacement dropdown for the entire group -->
-              <div class="group-replacement" style="margin-top: 12px;">
-                <select class="select-dropdown" id="select-all-group-${groupIndex}" style="width: 100%; margin-bottom: 8px;">
-                  <option value="">🔄 ${isShadsyncVariable ? 'Switch to different shadsync variable...' : 'Choose shadsync replacement for all objects...'}</option>
+            </div>
+            <div class="current-variable" style="color: ${textColor};">
+              ${variableGroup.objects[0]?.node?.name || 'Multiple objects'} (${variableGroup.objects[0]?.node?.type || 'various types'})
+              ${variableGroup.objects.length > 1 ? ` + ${variableGroup.objects.length - 1} more` : ''}
+            </div>
+            
+            <div class="suggestion-row">
+              <select class="select-dropdown" id="select-all-group-${groupIndex}" onchange="updateAllVariableSelectedVariable('${variableGroup.currentVariable.name}', this.value, ${groupIndex})" ${isReplaced ? 'disabled' : ''}>
+                <option value="">${isShadsyncVariable ? 'Switch to different shadsync variable...' : 'Choose shadsync replacement...'}</option>
         `;
         
         // Add all shadsync variables to dropdown
         if (variableGroup.allShadSyncVariables && variableGroup.allShadSyncVariables.length > 0) {
           // First show smart suggestions if any
           if (variableGroup.allSuggestions && variableGroup.allSuggestions.length > 0) {
-            html += '<optgroup label="📍 Smart Suggestions">';
+            html += '<optgroup label="⭐ Smart Suggestions">';
             variableGroup.allSuggestions.forEach(suggestion => {
               const selected = variableGroup.suggestion && suggestion.id === variableGroup.suggestion.id ? 'selected' : '';
               const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
@@ -1223,36 +1227,11 @@
         }
         
         html += `
-                </select>
-                <button class="replace-btn" id="replace-all-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-all-group-${groupIndex}"
-                        style="background: ${borderColor}; width: 100%;">
-                  ${isShadsyncVariable ? 'Switch' : 'Replace'}
-                </button>
-              </div>
-            </div>
-            
-            <!-- List of affected objects -->
-            <div class="affected-objects" style="padding: 12px; background: #fafafa;">
-              <div style="font-weight: 600; margin-bottom: 8px; color: #666;">Affected Objects:</div>
-        `;
-        
-        // Show each affected object
-        variableGroup.objects.forEach((obj, objIndex) => {
-          const hasColor = obj.color && (obj.color.r !== undefined || obj.color.g !== undefined || obj.color.b !== undefined);
-          const colorStyle = hasColor ? 
-            `background: rgb(${Math.round((obj.color.r || 0) * 255)}, ${Math.round((obj.color.g || 0) * 255)}, ${Math.round((obj.color.b || 0) * 255)})` : 
-            'background: #ccc';
-          
-          html += `
-            <div class="object-item" style="display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee;">
-              <div class="color-preview" style="${colorStyle}; width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid #ddd;"></div>
-              <span style="flex: 1;">${obj.node.name} (${obj.node.type})</span>
-              <span style="font-size: 12px; color: #666; text-transform: capitalize;">${obj.property}</span>
-            </div>
-          `;
-        });
-        
-        html += `
+              </select>
+              <button class="replace-btn" id="replace-all-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-all-group-${groupIndex}"
+                      style="background: ${borderColor};" ${isReplaced ? 'disabled' : ''}>
+                ${isReplaced ? '✅ Applied' : 'Apply'}
+              </button>
             </div>
           </div>
         `;
@@ -1381,6 +1360,28 @@
       console.log('Variable selected:', newVariableId);
     }
     
+    // Update selected variable for all-variable groups (called by dropdown onchange)
+    function updateAllVariableSelectedVariable(originalVariableName, newVariableId, groupIndex) {
+      console.log('updateAllVariableSelectedVariable called:', originalVariableName, newVariableId, groupIndex);
+      
+      // Store the selection for when Apply is clicked
+      if (window.allVariableGroups && window.allVariableGroups[groupIndex]) {
+        window.allVariableGroups[groupIndex].selectedVariableId = newVariableId;
+      }
+      
+      // Visual feedback: enable/disable Apply button based on selection
+      const button = document.getElementById(`replace-all-btn-${groupIndex}`);
+      if (button && !button.disabled) {
+        if (newVariableId) {
+          button.style.opacity = '1';
+          button.style.cursor = 'pointer';
+        } else {
+          button.style.opacity = '0.6';
+          button.style.cursor = 'not-allowed';
+        }
+      }
+    }
+    
     // Apply selected variable from dropdown
     function applySelectedVariable(nodeId, property, selectId, fillIndex, strokeIndex) {
       const selectElement = document.getElementById(selectId);
@@ -1390,6 +1391,41 @@
         showStatus('Please select a variable first', 'error');
         return;
       }
+      
+      // Find the button that was clicked (should be near the select)
+      const container = selectElement.closest('.suggestion-item');
+      const button = container ? container.querySelector('.replace-btn') : null;
+      
+      // Visual feedback: mark as applied
+      if (button) {
+        button.style.background = '#4caf50';
+        button.textContent = '✅ Applied';
+        button.disabled = true;
+      }
+      
+      // Update the card visual appearance
+      if (container) {
+        container.style.borderLeftColor = '#4caf50';
+        container.style.background = '#f1f8e9';
+        
+        // Update text colors
+        const objectInfo = container.querySelector('.object-info');
+        const currentVariable = container.querySelector('.current-variable');
+        if (objectInfo) objectInfo.style.color = '#2e7d32';
+        if (currentVariable) currentVariable.style.color = '#2e7d32';
+        
+        // Add success checkmark to header
+        if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
+          const successSpan = document.createElement('span');
+          successSpan.className = 'success-indicator';
+          successSpan.style.cssText = 'color: #4caf50; font-size: 12px; margin-left: 8px;';
+          successSpan.textContent = '✅ Applied';
+          objectInfo.appendChild(successSpan);
+        }
+      }
+      
+      // Disable the dropdown
+      selectElement.disabled = true;
       
       parent.postMessage({
         pluginMessage: {
@@ -1401,6 +1437,8 @@
           strokeIndex: strokeIndex
         }
       }, '*');
+      
+      showStatus('✅ Variable replacement applied successfully!', 'success');
     }
 
     // Make sure the function is available globally
@@ -1619,6 +1657,44 @@
       console.log('Processing all-variable group:', group);
       let replacementCount = 0;
       
+      // Visual feedback: mark as applying
+      const button = document.getElementById(`replace-all-btn-${groupIndex}`);
+      if (button) {
+        button.style.background = '#4caf50';
+        button.textContent = '✅ Applied';
+        button.disabled = true;
+      }
+      
+      // Mark the group as replaced
+      if (window.allVariableGroups[groupIndex]) {
+        window.allVariableGroups[groupIndex].replaced = true;
+      }
+      
+      // Update the card visual appearance
+      const card = button.closest('.suggestion-item');
+      if (card) {
+        card.style.borderLeftColor = '#4caf50';
+        card.style.background = '#f1f8e9';
+        
+        // Update text colors
+        const objectInfo = card.querySelector('.object-info');
+        const currentVariable = card.querySelector('.current-variable');
+        if (objectInfo) objectInfo.style.color = '#2e7d32';
+        if (currentVariable) currentVariable.style.color = '#2e7d32';
+        
+        // Add success checkmark to header
+        if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
+          const successSpan = document.createElement('span');
+          successSpan.className = 'success-indicator';
+          successSpan.style.cssText = 'color: #4caf50; font-size: 12px; margin-left: 8px;';
+          successSpan.textContent = '✅ Replaced';
+          objectInfo.appendChild(successSpan);
+        }
+      }
+      
+      // Disable the dropdown
+      selectElement.disabled = true;
+      
       // Replace variable for each object in the group
       group.objects.forEach((obj, index) => {
         console.log(`Replacing all-variable object ${index + 1}:`, obj.node.id, obj.property, newVariableId);
@@ -1636,7 +1712,7 @@
         replacementCount++;
       });
       
-      showStatus(`Replacing variable for ${replacementCount} objects...`, 'info');
+      showStatus(`✅ Successfully replaced variable for ${replacementCount} objects!`, 'success');
       
       // Re-run detection after a short delay to update the UI
       setTimeout(() => {
