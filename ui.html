@@ -607,25 +607,25 @@
       </button>
       
       <div id="variables-result" class="hidden">
+        <!-- General Replace All Button (for all variable replacements) -->
+        <div id="replace-all-container" class="hidden" style="margin-bottom: 16px; padding: 12px; background: #fff3f0; border-radius: 6px; border: 1px solid #ff6b35;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #ff6b35; margin-bottom: 4px;">🚀 Bulk Action</div>
+              <div style="font-size: 11px; color: #666;">Replace all variables with their best shadsync theme suggestions</div>
+            </div>
+            <button id="replace-all-btn" class="replace-btn" style="background: #ff6b35; padding: 8px 16px; font-weight: 600;">
+              Replace All
+            </button>
+          </div>
+        </div>
+        
         <!-- Non-ShadSync Variables Section -->
         <div id="non-shadsync-section" class="hidden">
           <div class="section-title" style="color: #ff6b35;">⚠️ Variables from Other Collections</div>
           <p style="font-size: 11px; color: #666; margin-bottom: 12px;">
             These variables from other collections are being used. Replace them with shadsync theme variables:
           </p>
-          
-          <!-- General Replace All Button -->
-          <div id="replace-all-container" class="hidden" style="margin-bottom: 16px; padding: 12px; background: #fff3f0; border-radius: 6px; border: 1px solid #ff6b35;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <div style="flex: 1;">
-                <div style="font-weight: 600; color: #ff6b35; margin-bottom: 4px;">🚀 Bulk Action</div>
-                <div style="font-size: 11px; color: #666;">Replace all non-shadsync variables with their best suggestions</div>
-              </div>
-              <button id="replace-all-btn" class="replace-btn" style="background: #ff6b35; padding: 8px 16px; font-weight: 600;">
-                Replace All
-              </button>
-            </div>
-          </div>
           
           <div class="suggestion-list" id="non-shadsync-list"></div>
         </div>
@@ -797,11 +797,6 @@
         nonShadSyncSection.classList.remove('hidden');
       } else {
         nonShadSyncSection.classList.add('hidden');
-        // Also hide the replace-all container when section is hidden
-        const replaceAllContainer = document.getElementById('replace-all-container');
-        if (replaceAllContainer) {
-          replaceAllContainer.classList.add('hidden');
-        }
       }
       
       // Priority 2: All Variable-Assigned Objects (for review and optimization)
@@ -828,6 +823,49 @@
         usageSummarySection.classList.add('hidden');
       }
       
+      // Handle Replace All container visibility
+      // Show if there are non-shadsync variables OR all-variables with suggestions
+      const replaceAllContainer = document.getElementById('replace-all-container');
+      const replaceAllBtn = document.getElementById('replace-all-btn');
+      const hasNonShadSync = data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0;
+      const hasAllVariablesWithSuggestions = data.allVariableAssigned && 
+        data.allVariableAssigned.some(group => group.suggestion && group.suggestion.id);
+      
+      if (hasNonShadSync || hasAllVariablesWithSuggestions) {
+        if (replaceAllContainer) {
+          replaceAllContainer.classList.remove('hidden');
+          
+          // Update button text and state
+          if (replaceAllBtn) {
+            const nonShadSyncWithSuggestions = (data.nonShadSyncVariables || []).filter(group => group.suggestion && group.suggestion.id).length;
+            const allVariablesWithSuggestions = (data.allVariableAssigned || []).filter(group => group.suggestion && group.suggestion.id).length;
+            const totalSuggestions = nonShadSyncWithSuggestions + allVariablesWithSuggestions;
+            
+            console.log('Replace All button state:', {
+              nonShadSyncWithSuggestions,
+              allVariablesWithSuggestions,
+              totalSuggestions,
+              hasNonShadSync,
+              hasAllVariablesWithSuggestions
+            });
+            
+            if (totalSuggestions > 0) {
+              replaceAllBtn.textContent = `Replace All (${totalSuggestions} variable${totalSuggestions !== 1 ? 's' : ''})`;
+              replaceAllBtn.disabled = false;
+              replaceAllBtn.style.opacity = '1';
+            } else {
+              replaceAllBtn.textContent = `Replace All (No suggestions available)`;
+              replaceAllBtn.disabled = true;
+              replaceAllBtn.style.opacity = '0.5';
+            }
+          }
+        }
+      } else {
+        if (replaceAllContainer) {
+          replaceAllContainer.classList.add('hidden');
+        }
+      }
+      
       // Show "All Clear" message if no issues found
       if ((!data.nonShadSyncVariables || data.nonShadSyncVariables.length === 0) && 
           (!data.unassignedObjects || data.unassignedObjects.length === 0)) {
@@ -835,6 +873,15 @@
       } else {
         allClearMessage.classList.add('hidden');
       }
+      
+      // Set up Replace All button event listener
+      setTimeout(() => {
+        const replaceAllBtn = document.getElementById('replace-all-btn');
+        if (replaceAllBtn) {
+          replaceAllBtn.removeEventListener('click', window.replaceAllVariables); // Remove previous listener
+          replaceAllBtn.addEventListener('click', window.replaceAllVariables);
+        }
+      }, 100);
       
       resultDiv.classList.remove('hidden');
       hideStatus();
@@ -932,38 +979,6 @@
       
       // Store the grouped data for replacement functionality
       window.nonShadSyncGroups = nonShadSyncVariables;
-      
-      // Show/hide the general Replace All button
-      const replaceAllContainer = document.getElementById('replace-all-container');
-      const replaceAllBtn = document.getElementById('replace-all-btn');
-      
-      // Count groups with suggestions
-      const groupsWithSuggestions = nonShadSyncVariables.filter(group => group.suggestion && group.suggestion.id).length;
-      console.log('Debug Replace All button:', {
-        totalGroups: nonShadSyncVariables.length,
-        groupsWithSuggestions: groupsWithSuggestions,
-        replaceAllContainer: replaceAllContainer,
-        replaceAllBtn: replaceAllBtn,
-        sampleGroup: nonShadSyncVariables[0] // Show structure of first group
-      });
-      
-      // Always show the container for now (for debugging)
-      if (nonShadSyncVariables.length > 0) {
-        replaceAllContainer.classList.remove('hidden');
-        if (replaceAllBtn) {
-          if (groupsWithSuggestions > 0) {
-            replaceAllBtn.textContent = `Replace All (${groupsWithSuggestions} variable${groupsWithSuggestions !== 1 ? 's' : ''})`;
-            replaceAllBtn.disabled = false;
-            replaceAllBtn.style.opacity = '1';
-          } else {
-            replaceAllBtn.textContent = `Replace All (No suggestions available)`;
-            replaceAllBtn.disabled = true;
-            replaceAllBtn.style.opacity = '0.5';
-          }
-        }
-      } else {
-        replaceAllContainer.classList.add('hidden');
-      }
       
       // Add event listeners to replace buttons
       setTimeout(() => {
@@ -1329,6 +1344,80 @@
           console.warn(`Group ${groupIndex} has no suggestion:`, group);
         }
       });
+      
+      if (totalReplacements > 0) {
+        showStatus(`Replacing ${totalReplacements} objects across ${groupsWithSuggestions} variable groups...`, 'info');
+        
+        // Re-run detection after a delay to update the UI
+        setTimeout(() => {
+          console.log('Re-running variable check after bulk replacement...');
+          parent.postMessage({
+            pluginMessage: { type: 'check-variables' }
+          }, '*');
+        }, 1500); // Slightly longer delay for bulk operation
+      } else {
+        showStatus('No suitable suggestions found for bulk replacement', 'warning');
+      }
+    };
+
+    // Replace all variables (both non-shadsync and all-variables with suggestions)
+    window.replaceAllVariables = function() {
+      console.log('replaceAllVariables called');
+      
+      let totalReplacements = 0;
+      let groupsWithSuggestions = 0;
+      
+      // Process non-shadsync variables
+      if (window.nonShadSyncGroups && window.nonShadSyncGroups.length > 0) {
+        window.nonShadSyncGroups.forEach((group, groupIndex) => {
+          if (group.suggestion && group.suggestion.id) {
+            groupsWithSuggestions++;
+            
+            // Replace variable for each object in the group
+            group.objects.forEach((obj, objIndex) => {
+              console.log(`Replacing non-shadsync object ${objIndex + 1} in group ${groupIndex}:`, obj.node.id, obj.property, group.suggestion.id);
+              
+              parent.postMessage({
+                pluginMessage: {
+                  type: 'replace-variable',
+                  nodeId: obj.node.id,
+                  property: obj.property,
+                  newVariableId: group.suggestion.id,
+                  fillIndex: obj.fillIndex || 0,
+                  strokeIndex: obj.strokeIndex || 0
+                }
+              }, '*');
+              totalReplacements++;
+            });
+          }
+        });
+      }
+      
+      // Process all-variable-assigned objects
+      if (window.allVariableGroups && window.allVariableGroups.length > 0) {
+        window.allVariableGroups.forEach((group, groupIndex) => {
+          if (group.suggestion && group.suggestion.id) {
+            groupsWithSuggestions++;
+            
+            // Replace variable for each object in the group
+            group.objects.forEach((obj, objIndex) => {
+              console.log(`Replacing all-variable object ${objIndex + 1} in group ${groupIndex}:`, obj.node.id, obj.property, group.suggestion.id);
+              
+              parent.postMessage({
+                pluginMessage: {
+                  type: 'replace-variable',
+                  nodeId: obj.node.id,
+                  property: obj.property,
+                  newVariableId: group.suggestion.id,
+                  fillIndex: obj.fillIndex || 0,
+                  strokeIndex: obj.strokeIndex || 0
+                }
+              }, '*');
+              totalReplacements++;
+            });
+          }
+        });
+      }
       
       if (totalReplacements > 0) {
         showStatus(`Replacing ${totalReplacements} objects across ${groupsWithSuggestions} variable groups...`, 'info');
