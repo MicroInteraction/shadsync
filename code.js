@@ -298,6 +298,7 @@ async function checkUsedVariables() {
   const unassignedObjects = [];
   const variablesByCollection = {};
   const groupedNonShadSync = {}; // Group by variable name
+  const groupedAllVariables = {}; // Group ALL variable-assigned objects for suggestions
   
   // Analyze all nodes for color usage
   for (const node of nodesToAnalyze) {
@@ -320,6 +321,32 @@ async function checkUsedVariables() {
             const variable = figma.variables.getVariableById(fill.boundVariables.color.id);
             if (variable) {
               const collection = collections.find(c => c.id === variable.variableCollectionId);
+              
+              // Group ALL variable-assigned objects for suggestion (regardless of collection)
+              const allVariablesKey = `${variable.name}_${collection ? collection.name : 'unknown'}`;
+              const suggestions = getSortedSuggestions(variable.name, shadSyncVariables);
+              
+              if (!groupedAllVariables[allVariablesKey]) {
+                groupedAllVariables[allVariablesKey] = {
+                  currentVariable: {
+                    id: variable.id,
+                    name: variable.name,
+                    collection: collection ? collection.name : 'unknown'
+                  },
+                  suggestion: suggestions.length > 0 ? suggestions[0] : null,
+                  allSuggestions: suggestions,
+                  allShadSyncVariables: shadSyncVariables,
+                  objects: [],
+                  property: 'fill'
+                };
+              }
+              
+              groupedAllVariables[allVariablesKey].objects.push({
+                node: nodeInfo,
+                property: 'fill',
+                fillIndex: i,
+                color: fill.color
+              });
               
               if (collection && collection.name !== 'shadsync theme') {
                 // Variable from different collection - suggest replacement
@@ -392,6 +419,32 @@ async function checkUsedVariables() {
             if (variable) {
               const collection = collections.find(c => c.id === variable.variableCollectionId);
               
+              // Group ALL variable-assigned objects for suggestion (regardless of collection)
+              const allVariablesKey = `${variable.name}_${collection ? collection.name : 'unknown'}`;
+              const suggestions = getSortedSuggestions(variable.name, shadSyncVariables);
+              
+              if (!groupedAllVariables[allVariablesKey]) {
+                groupedAllVariables[allVariablesKey] = {
+                  currentVariable: {
+                    id: variable.id,
+                    name: variable.name,
+                    collection: collection ? collection.name : 'unknown'
+                  },
+                  suggestion: suggestions.length > 0 ? suggestions[0] : null,
+                  allSuggestions: suggestions,
+                  allShadSyncVariables: shadSyncVariables,
+                  objects: [],
+                  property: 'stroke'
+                };
+              }
+              
+              groupedAllVariables[allVariablesKey].objects.push({
+                node: nodeInfo,
+                property: 'stroke',
+                strokeIndex: i,
+                color: stroke.color
+              });
+              
               if (collection && collection.name !== 'shadsync theme') {
                 // Variable from different collection - suggest replacement
                 const suggestion = findBestMatch(variable.name, shadSyncVariables);
@@ -441,6 +494,7 @@ async function checkUsedVariables() {
   
   // Convert grouped data to array format
   const groupedNonShadSyncArray = Object.values(groupedNonShadSync);
+  const groupedAllVariablesArray = Object.values(groupedAllVariables);
   
   figma.ui.postMessage({
     type: 'variables-check-result',
@@ -449,12 +503,14 @@ async function checkUsedVariables() {
       mainCollectionName: 'shadsync theme',
       totalUsed: Object.values(variablesByCollection).reduce((sum, vars) => sum + vars.length, 0),
       nonShadSyncVariables: groupedNonShadSyncArray, // Send grouped data
+      allVariableAssigned: groupedAllVariablesArray, // All variable-assigned objects
       unassignedObjects,
       shadSyncVariables,
       analyzedNodes: nodesToAnalyze.length,
       hasSelection: selection.length > 0,
       scanSummary: {
         nonShadSyncCount: groupedNonShadSyncArray.length, // Count of unique variables, not objects
+        allVariableCount: groupedAllVariablesArray.length, // Count of all variable-assigned unique variables
         unassignedCount: unassignedObjects.length,
         shadSyncCount: variablesByCollection['shadsync theme'] ? variablesByCollection['shadsync theme'].length : 0
       }

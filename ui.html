@@ -616,6 +616,15 @@
           <div class="suggestion-list" id="non-shadsync-list"></div>
         </div>
         
+        <!-- All Variable-Assigned Objects Section -->
+        <div id="all-variables-section" class="hidden">
+          <div class="section-title" style="color: #2196f3;">🔄 All Variable-Assigned Objects</div>
+          <p style="font-size: 11px; color: #666; margin-bottom: 12px;">
+            All objects using variables (from any collection). Review and replace with better shadsync theme options:
+          </p>
+          <div class="suggestion-list" id="all-variables-list"></div>
+        </div>
+        
         <!-- Unassigned Objects Section -->
         <div id="unassigned-section" class="hidden">
           <div class="section-title" style="color: #999;">Objects Without Variables</div>
@@ -746,6 +755,8 @@
           const summary = msg.data.scanSummary;
           if (summary.nonShadSyncCount > 0) {
             showStatus(`Found ${summary.nonShadSyncCount} non-shadsync variable${summary.nonShadSyncCount !== 1 ? 's' : ''} in use`, 'error');
+          } else if (summary.allVariableCount > 0) {
+            showStatus(`Found ${summary.allVariableCount} variable${summary.allVariableCount !== 1 ? 's' : ''} in use (review for optimization)`, 'info');
           } else if (summary.unassignedCount > 0) {
             showStatus(`Found ${summary.unassignedCount} objects without variables assigned`, 'info');
           } else {
@@ -761,6 +772,7 @@
       
       // Show/hide sections based on data
       const nonShadSyncSection = document.getElementById('non-shadsync-section');
+      const allVariablesSection = document.getElementById('all-variables-section');
       const unassignedSection = document.getElementById('unassigned-section');
       const usageSummarySection = document.getElementById('usage-summary');
       const allClearMessage = document.getElementById('all-clear-message');
@@ -773,7 +785,15 @@
         nonShadSyncSection.classList.add('hidden');
       }
       
-      // Priority 2: Unassigned Objects (secondary)
+      // Priority 2: All Variable-Assigned Objects (for review and optimization)
+      if (data.allVariableAssigned && data.allVariableAssigned.length > 0) {
+        displayAllVariableAssigned(data.allVariableAssigned);
+        allVariablesSection.classList.remove('hidden');
+      } else {
+        allVariablesSection.classList.add('hidden');
+      }
+      
+      // Priority 3: Unassigned Objects (secondary)
       if (data.unassignedObjects && data.unassignedObjects.length > 0) {
         displayUnassignedObjects(data.unassignedObjects);
         unassignedSection.classList.remove('hidden');
@@ -913,6 +933,126 @@
       }, 100);
     }
     
+    // Display all variable-assigned objects for review and replacement
+    function displayAllVariableAssigned(allVariableAssigned) {
+      const listDiv = document.getElementById('all-variables-list');
+      let html = '';
+      
+      allVariableAssigned.forEach((variableGroup, groupIndex) => {
+        const isShadsyncVariable = variableGroup.currentVariable.collection === 'shadsync theme';
+        const borderColor = isShadsyncVariable ? '#4caf50' : '#2196f3';
+        const badgeColor = isShadsyncVariable ? '#4caf50' : '#2196f3';
+        
+        // Variable group header
+        html += `
+          <div class="variable-group" style="border-left: 3px solid ${borderColor}; margin-bottom: 16px; background: #fff;">
+            <div class="variable-group-header" style="background: ${isShadsyncVariable ? '#f1f8e9' : '#e3f2fd'}; padding: 12px; border-radius: 6px 6px 0 0;">
+              <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 8px;">
+                <div>
+                  <span style="color: ${borderColor}; font-weight: 600;">Variable:</span> 
+                  <strong>${variableGroup.currentVariable.name}</strong> 
+                  <span style="color: #666;">from "${variableGroup.currentVariable.collection}"</span>
+                  ${isShadsyncVariable ? '<span style="color: #4caf50; font-size: 12px;">✅ Already ShadSync</span>' : ''}
+                </div>
+                <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+                  ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              
+              <!-- Replacement dropdown for the entire group -->
+              <div class="group-replacement" style="margin-top: 12px;">
+                <select class="select-dropdown" id="select-all-group-${groupIndex}" style="width: 100%; margin-bottom: 8px;">
+                  <option value="">🔄 ${isShadsyncVariable ? 'Switch to different shadsync variable...' : 'Choose shadsync replacement for all objects...'}</option>
+        `;
+        
+        // Add all shadsync variables to dropdown
+        if (variableGroup.allShadSyncVariables && variableGroup.allShadSyncVariables.length > 0) {
+          // First show smart suggestions if any
+          if (variableGroup.allSuggestions && variableGroup.allSuggestions.length > 0) {
+            html += '<optgroup label="📍 Smart Suggestions">';
+            variableGroup.allSuggestions.forEach(suggestion => {
+              const selected = variableGroup.suggestion && suggestion.id === variableGroup.suggestion.id ? 'selected' : '';
+              const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
+              html += `<option value="${suggestion.id}" ${selected}>${emoji} ${suggestion.name} (${suggestion.score}% match)</option>`;
+            });
+            html += '</optgroup>';
+          }
+          
+          // Then show all available variables
+          html += '<optgroup label="🎨 All ShadSync Variables">';
+          variableGroup.allShadSyncVariables.forEach(variable => {
+            const isCurrentVariable = variable.id === variableGroup.currentVariable.id;
+            const isInSuggestions = variableGroup.allSuggestions && 
+              variableGroup.allSuggestions.some(s => s.id === variable.id);
+            if (!isInSuggestions && !isCurrentVariable) {
+              html += `<option value="${variable.id}">${variable.name}</option>`;
+            } else if (isCurrentVariable) {
+              html += `<option value="${variable.id}" style="color: #666; font-style: italic;">${variable.name} (current)</option>`;
+            }
+          });
+          html += '</optgroup>';
+        }
+        
+        html += `
+                </select>
+                <button class="replace-btn" id="replace-all-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-all-group-${groupIndex}"
+                        style="background: ${borderColor}; width: 100%;">
+                  ${isShadsyncVariable ? 'Switch All' : 'Replace All'} ${variableGroup.objects.length} Objects
+                </button>
+              </div>
+            </div>
+            
+            <!-- List of affected objects -->
+            <div class="affected-objects" style="padding: 12px; background: #fafafa;">
+              <div style="font-weight: 600; margin-bottom: 8px; color: #666;">Affected Objects:</div>
+        `;
+        
+        // Show each affected object
+        variableGroup.objects.forEach((obj, objIndex) => {
+          const hasColor = obj.color && (obj.color.r !== undefined || obj.color.g !== undefined || obj.color.b !== undefined);
+          const colorStyle = hasColor ? 
+            `background: rgb(${Math.round((obj.color.r || 0) * 255)}, ${Math.round((obj.color.g || 0) * 255)}, ${Math.round((obj.color.b || 0) * 255)})` : 
+            'background: #ccc';
+          
+          html += `
+            <div class="object-item" style="display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee;">
+              <div class="color-preview" style="${colorStyle}; width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid #ddd;"></div>
+              <span style="flex: 1;">${obj.node.name} (${obj.node.type})</span>
+              <span style="font-size: 12px; color: #666; text-transform: capitalize;">${obj.property}</span>
+            </div>
+          `;
+        });
+        
+        html += `
+            </div>
+          </div>
+        `;
+      });
+      
+      listDiv.innerHTML = html;
+      
+      // Store the grouped data for replacement functionality
+      window.allVariableGroups = allVariableAssigned;
+      
+      // Add event listeners to replace buttons
+      setTimeout(() => {
+        allVariableAssigned.forEach((variableGroup, index) => {
+          const button = document.getElementById(`replace-all-btn-${index}`);
+          if (button) {
+            console.log(`Adding event listener to all-variables button ${index}`);
+            button.addEventListener('click', function() {
+              console.log(`All-variables button ${index} clicked`);
+              const buttonGroupIndex = parseInt(this.getAttribute('data-group-index'));
+              const selectId = this.getAttribute('data-select-id');
+              window.applyAllVariableGroupReplacement(buttonGroupIndex, selectId);
+            });
+          } else {
+            console.error(`All-variables button not found: replace-all-btn-${index}`);
+          }
+        });
+      }, 100);
+    }
+
     // Display objects without variables
     function displayUnassignedObjects(unassignedObjects) {
       const listDiv = document.getElementById('unassigned-list');
@@ -1094,6 +1234,73 @@
       }, 1000);
     };
 
+    // Apply group replacement for all variable-assigned objects
+    window.applyAllVariableGroupReplacement = function(groupIndex, selectId) {
+      console.log('applyAllVariableGroupReplacement called:', groupIndex, selectId);
+      
+      const selectElement = document.getElementById(selectId);
+      if (!selectElement) {
+        console.error('Select element not found:', selectId);
+        showStatus('Dropdown not found', 'error');
+        return;
+      }
+      
+      const newVariableId = selectElement.value;
+      console.log('Selected variable ID:', newVariableId);
+      
+      if (!newVariableId) {
+        showStatus('Please select a variable first', 'error');
+        return;
+      }
+      
+      if (!window.allVariableGroups || !window.allVariableGroups[groupIndex]) {
+        console.error('All-variable group data not found:', window.allVariableGroups, groupIndex);
+        showStatus('Group data not found', 'error');
+        return;
+      }
+      
+      const group = window.allVariableGroups[groupIndex];
+      console.log('Processing all-variable group:', group);
+      let replacementCount = 0;
+      
+      // Replace variable for each object in the group
+      group.objects.forEach((obj, index) => {
+        console.log(`Replacing all-variable object ${index + 1}:`, obj.node.id, obj.property, newVariableId);
+        
+        parent.postMessage({
+          pluginMessage: {
+            type: 'replace-variable',
+            nodeId: obj.node.id,
+            property: obj.property,
+            newVariableId: newVariableId,
+            fillIndex: obj.fillIndex || 0,
+            strokeIndex: obj.strokeIndex || 0
+          }
+        }, '*');
+        replacementCount++;
+      });
+      
+      showStatus(`Replacing variable for ${replacementCount} objects...`, 'info');
+      
+      // Re-run detection after a short delay to update the UI
+      setTimeout(() => {
+        console.log('Re-running variable check after all-variable replacement...');
+        parent.postMessage({
+          pluginMessage: { type: 'check-variables' }
+        }, '*');
+      }, 1000);
+    };
+
+    // Apply group replacement for all variable-assigned objects
+    function applyAllVariableGroupReplacement(groupIndex, selectId) {
+      return window.applyAllVariableGroupReplacement(groupIndex, selectId);
+    }
+
+    // Apply group replacement - replace variable for all objects in a group
+    function applyGroupReplacement(groupIndex, selectId) {
+      return window.applyGroupReplacement(groupIndex, selectId);
+    }
+
     // Initialize when page loads
     window.addEventListener('load', function() {
       console.log('Page loaded. Available functions:');
@@ -1101,12 +1308,6 @@
       console.log('- applySelectedVariable:', typeof applySelectedVariable);
       console.log('- updateSelectedVariable:', typeof updateSelectedVariable);
     });
-
-    // Apply group replacement - replace variable for all objects in a group
-    function applyGroupReplacement(groupIndex, selectId) {
-      return window.applyGroupReplacement(groupIndex, selectId);
-    }
-
   </script>
 </body>
 </html>
