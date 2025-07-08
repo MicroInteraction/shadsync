@@ -1242,7 +1242,55 @@
       }, 100);
     }
 
-    // Display objects without variables
+    // Display orphaned objects
+    function displayOrphanedObjects(orphanedObjects) {
+      const listDiv = document.getElementById('orphaned-list');
+      let html = '';
+      
+      orphanedObjects.forEach((item, index) => {
+        let previewElement = '';
+        
+        if (item.property === 'cornerRadius') {
+          // Show radius value for corner radius properties
+          previewElement = `<div class="radius-preview">${item.value}px</div>`;
+        } else {
+          // Show color preview for fill/stroke properties
+          const hasColor = item.color && (item.color.r !== undefined || item.color.g !== undefined || item.color.b !== undefined);
+          const colorStyle = hasColor ? 
+            `background: rgb(${Math.round((item.color.r || 0) * 255)}, ${Math.round((item.color.g || 0) * 255)}, ${Math.round((item.color.b || 0) * 255)})` : 
+            'background: #ccc';
+          previewElement = `<div class="color-preview" style="${colorStyle}"></div>`;
+        }
+        
+        html += `
+          <div class="suggestion-item">
+            <div class="suggestion-header">
+              <div class="suggestion-main">
+                ${previewElement}
+                <div class="suggestion-content">
+                  <div class="suggestion-title">${item.node.name.replace(/\s*\(INSTANCE\)$/, '')} (${item.node.type})</div>
+                  <div class="suggestion-description">
+                    <span style="font-size: 11px; color: #666;">
+                      Detected variable: <strong>${item.detectedVariable.name}</strong>
+                    </span>
+                  </div>
+                  <div class="suggestion-reason">${item.reason} (${Math.round(item.confidence)}% confidence)</div>
+                </div>
+              </div>
+              <button class="replace-btn" id="orphaned-btn-${index}" onclick="replaceOrphanedVariable('${item.node.id}', '${item.property}', '${item.detectedVariable.id}', ${item.fillIndex || 0}, ${item.strokeIndex || 0})">
+                Repair
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      
+      listDiv.innerHTML = html;
+      
+      // Store the orphaned data for replacement functionality
+      window.orphanedGroups = orphanedObjects;
+    }
+
     function displayUnassignedObjects(unassignedObjects) {
       const listDiv = document.getElementById('unassigned-list');
       let html = '';
@@ -1393,29 +1441,96 @@
         button.disabled = true;
       }
       
-      // Update the card visual appearance
-      if (container) {
-        container.style.borderLeftColor = '#41D7AF';
-        container.style.background = '#f0fffe';
-        
-        // Update text colors
-        const objectInfo = container.querySelector('.object-info');
-        const currentVariable = container.querySelector('.current-variable');
-        if (objectInfo) objectInfo.style.color = '#2e7d32';
-        if (currentVariable) currentVariable.style.color = '#2e7d32';
-        
-        // Add success checkmark to header
-        if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
-          const successSpan = document.createElement('span');
-          successSpan.className = 'success-indicator';
-          successSpan.style.cssText = 'color: #41D7AF; font-size: 12px; margin-left: 8px;';
-          successSpan.textContent = '✅ Applied';
-          objectInfo.appendChild(successSpan);
-        }
+    }
+
+    // Replace all variables function
+    window.replaceAllVariables = function() {
+      console.log('Replace All clicked');
+      
+      let totalReplacements = 0;
+      
+      // Process non-shadsync variables using stored group data
+      if (window.nonShadSyncGroups) {
+        window.nonShadSyncGroups.forEach((variableGroup, index) => {
+          const selectElement = document.getElementById(`select-group-${index}`);
+          if (selectElement && selectElement.value && variableGroup.suggestion) {
+            // Replace all objects in this variable group
+            variableGroup.objects.forEach(obj => {
+              parent.postMessage({
+                pluginMessage: {
+                  type: 'replace-variable',
+                  nodeId: obj.node.id,
+                  property: obj.property,
+                  newVariableId: selectElement.value,
+                  fillIndex: obj.fillIndex || 0,
+                  strokeIndex: obj.strokeIndex || 0
+                }
+              }, '*');
+              totalReplacements++;
+            });
+            
+            // Update button visual state
+            const button = document.getElementById(`replace-btn-${index}`);
+            if (button) {
+              button.style.background = '#41D7AF';
+              button.textContent = '✅ Replaced';
+              button.disabled = true;
+            }
+          }
+        });
       }
       
-      // Disable the dropdown
-      selectElement.disabled = true;
+      // Process orphaned variables using stored group data
+      if (window.orphanedGroups) {
+        window.orphanedGroups.forEach((orphanedObj, index) => {
+          if (orphanedObj.detectedVariable) {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'replace-variable',
+                nodeId: orphanedObj.node.id,
+                property: orphanedObj.property,
+                newVariableId: orphanedObj.detectedVariable.id,
+                fillIndex: orphanedObj.fillIndex || 0,
+                strokeIndex: orphanedObj.strokeIndex || 0
+              }
+            }, '*');
+            totalReplacements++;
+            
+            // Update button visual state
+            const button = document.getElementById(`orphaned-btn-${index}`);
+            if (button) {
+              button.style.background = '#41D7AF';
+              button.textContent = '✅ Repaired';
+              button.disabled = true;
+            }
+          }
+        });
+      }
+      
+      if (totalReplacements > 0) {
+        showStatus(`Replacing ${totalReplacements} variable${totalReplacements !== 1 ? 's' : ''}...`, 'success');
+        
+        // Disable Replace All button
+        const replaceAllBtn = document.getElementById('replace-all-btn');
+        if (replaceAllBtn) {
+          replaceAllBtn.disabled = true;
+          replaceAllBtn.style.opacity = '0.5';
+        }
+        
+        // Refresh scan after replacements
+        setTimeout(() => {
+          parent.postMessage({
+            pluginMessage: { type: 'check-variables' }
+          }, '*');
+        }, 1000);
+      } else {
+        showStatus('No variables available for replacement', 'error');
+      }
+    };
+
+    // Replace orphaned variable function
+    function replaceOrphanedVariable(nodeId, property, newVariableId, fillIndex, strokeIndex) {
+      console.log('Replacing orphaned variable:', nodeId, property, newVariableId);
       
       parent.postMessage({
         pluginMessage: {
@@ -1428,358 +1543,14 @@
         }
       }, '*');
       
-      showStatus('✅ Variable replacement applied successfully!', 'success');
-    }
-
-    // Make sure the function is available globally
-    window.applyGroupReplacement = function(groupIndex, selectId) {
-      console.log('applyGroupReplacement called:', groupIndex, selectId);
-      console.log('Available functions:', typeof updateSelectedVariable, typeof applySelectedVariable);
-      console.log('Window object keys:', Object.keys(window));
-      
-      const selectElement = document.getElementById(selectId);
-      if (!selectElement) {
-        console.error('Select element not found:', selectId);
-        console.log('Available elements with select-group prefix:', document.querySelectorAll('[id^="select-group"]'));
-        showStatus('Dropdown not found', 'error');
-        return;
-      }
-      
-      const newVariableId = selectElement.value;
-      console.log('Selected variable ID:', newVariableId);
-      
-      if (!newVariableId) {
-        showStatus('Please select a variable first', 'error');
-        return;
-      }
-      
-      if (!window.nonShadSyncGroups || !window.nonShadSyncGroups[groupIndex]) {
-        console.error('Group data not found:', window.nonShadSyncGroups, groupIndex);
-        showStatus('Group data not found', 'error');
-        return;
-      }
-      
-      const group = window.nonShadSyncGroups[groupIndex];
-      console.log('Processing group:', group);
-      let replacementCount = 0;
-      
-      // Replace variable for each object in the group
-      group.objects.forEach((obj, index) => {
-        console.log(`Replacing object ${index + 1}:`, obj.node.id, obj.property, newVariableId);
-        
-        parent.postMessage({
-          pluginMessage: {
-            type: 'replace-variable',
-            nodeId: obj.node.id,
-            property: obj.property,
-            newVariableId: newVariableId,
-            fillIndex: obj.fillIndex || 0,
-            strokeIndex: obj.strokeIndex || 0
-          }
-        }, '*');
-        replacementCount++;
-      });
-      
-      showStatus(`Replacing variable for ${replacementCount} objects...`, 'info');
-      
-      // Re-run detection after a short delay to update the UI
-      setTimeout(() => {
-        console.log('Re-running variable check...');
-        parent.postMessage({
-          pluginMessage: { type: 'check-variables' }
-        }, '*');
-      }, 1000);
-    };
-
-    // Replace all non-shadsync variables with their best suggestions
-    window.replaceAllNonShadSync = function() {
-      console.log('replaceAllNonShadSync called');
-      
-      if (!window.nonShadSyncGroups || window.nonShadSyncGroups.length === 0) {
-        showStatus('No non-shadsync variables found', 'error');
-        return;
-      }
-      
-      let totalReplacements = 0;
-      let groupsWithSuggestions = 0;
-      
-      // Process each group
-      window.nonShadSyncGroups.forEach((group, groupIndex) => {
-        if (group.suggestion && group.suggestion.id) {
-          groupsWithSuggestions++;
-          
-          // Replace variable for each object in the group
-          group.objects.forEach((obj, objIndex) => {
-            console.log(`Replacing object ${objIndex + 1} in group ${groupIndex}:`, obj.node.id, obj.property, group.suggestion.id);
-            
-            parent.postMessage({
-              pluginMessage: {
-                type: 'replace-variable',
-                nodeId: obj.node.id,
-                property: obj.property,
-                newVariableId: group.suggestion.id,
-                fillIndex: obj.fillIndex || 0,
-                strokeIndex: obj.strokeIndex || 0
-              }
-            }, '*');
-            totalReplacements++;
-          });
-        } else {
-          console.warn(`Group ${groupIndex} has no suggestion:`, group);
-        }
-      });
-      
-      if (totalReplacements > 0) {
-        showStatus(`Replacing ${totalReplacements} objects across ${groupsWithSuggestions} variable groups...`, 'info');
-        
-        // Re-run detection after a delay to update the UI
-        setTimeout(() => {
-          console.log('Re-running variable check after bulk replacement...');
-          parent.postMessage({
-            pluginMessage: { type: 'check-variables' }
-          }, '*');
-        }, 1500); // Slightly longer delay for bulk operation
-      } else {
-        showStatus('No suitable suggestions found for bulk replacement', 'warning');
-      }
-    };
-
-    // Replace all variables (both non-shadsync and all-variables with suggestions)
-    window.replaceAllVariables = function() {
-      console.log('replaceAllVariables called');
-      
-      let totalReplacements = 0;
-      let groupsWithSuggestions = 0;
-      
-      // Process non-shadsync variables
-      if (window.nonShadSyncGroups && window.nonShadSyncGroups.length > 0) {
-        window.nonShadSyncGroups.forEach((group, groupIndex) => {
-          if (group.suggestion && group.suggestion.id) {
-            groupsWithSuggestions++;
-            
-            // Replace variable for each object in the group
-            group.objects.forEach((obj, objIndex) => {
-              console.log(`Replacing non-shadsync object ${objIndex + 1} in group ${groupIndex}:`, obj.node.id, obj.property, group.suggestion.id);
-              
-              parent.postMessage({
-                pluginMessage: {
-                  type: 'replace-variable',
-                  nodeId: obj.node.id,
-                  property: obj.property,
-                  newVariableId: group.suggestion.id,
-                  fillIndex: obj.fillIndex || 0,
-                  strokeIndex: obj.strokeIndex || 0
-                }
-              }, '*');
-              totalReplacements++;
-            });
-          }
-        });
-      }
-      
-      // Process all-variable-assigned objects
-      if (window.allVariableGroups && window.allVariableGroups.length > 0) {
-        window.allVariableGroups.forEach((group, groupIndex) => {
-          if (group.suggestion && group.suggestion.id) {
-            groupsWithSuggestions++;
-            
-            // Replace variable for each object in the group
-            group.objects.forEach((obj, objIndex) => {
-              console.log(`Replacing all-variable object ${objIndex + 1} in group ${groupIndex}:`, obj.node.id, obj.property, group.suggestion.id);
-              
-              parent.postMessage({
-                pluginMessage: {
-                  type: 'replace-variable',
-                  nodeId: obj.node.id,
-                  property: obj.property,
-                  newVariableId: group.suggestion.id,
-                  fillIndex: obj.fillIndex || 0,
-                  strokeIndex: obj.strokeIndex || 0
-                }
-              }, '*');
-              totalReplacements++;
-            });
-          }
-        });
-      }
-      
-      // Process orphaned objects
-      if (window.orphanedObjects && window.orphanedObjects.length > 0) {
-        window.orphanedObjects.forEach((item, index) => {
-          if (item.detectedVariable && item.detectedVariable.id) {
-            console.log(`Connecting orphaned object ${index + 1}:`, item.node.id, item.property, item.detectedVariable.id);
-            
-            parent.postMessage({
-              pluginMessage: {
-                type: 'replace-variable',
-                nodeId: item.node.id,
-                property: item.property,
-                newVariableId: item.detectedVariable.id,
-                fillIndex: item.fillIndex || 0,
-                strokeIndex: item.strokeIndex || 0
-              }
-            }, '*');
-            totalReplacements++;
-          }
-        });
-      }
-      
-      if (totalReplacements > 0) {
-        showStatus(`Replacing ${totalReplacements} objects across ${groupsWithSuggestions} variable groups...`, 'info');
-        
-        // Re-run detection after a delay to update the UI
-        setTimeout(() => {
-          console.log('Re-running variable check after bulk replacement...');
-          parent.postMessage({
-            pluginMessage: { type: 'check-variables' }
-          }, '*');
-        }, 1500); // Slightly longer delay for bulk operation
-      } else {
-        showStatus('No suitable suggestions found for bulk replacement', 'warning');
-      }
-    };
-
-    // Apply group replacement for all variable-assigned objects
-    window.applyAllVariableGroupReplacement = function(groupIndex, selectId) {
-      console.log('applyAllVariableGroupReplacement called:', groupIndex, selectId);
-      
-      const selectElement = document.getElementById(selectId);
-      if (!selectElement) {
-        console.error('Select element not found:', selectId);
-        showStatus('Dropdown not found', 'error');
-        return;
-      }
-      
-      const newVariableId = selectElement.value;
-      console.log('Selected variable ID:', newVariableId);
-      
-      if (!newVariableId) {
-        showStatus('Please select a variable first', 'error');
-        return;
-      }
-      
-      if (!window.allVariableGroups || !window.allVariableGroups[groupIndex]) {
-        console.error('All-variable group data not found:', window.allVariableGroups, groupIndex);
-        showStatus('Group data not found', 'error');
-        return;
-      }
-      
-      const group = window.allVariableGroups[groupIndex];
-      console.log('Processing all-variable group:', group);
-      let replacementCount = 0;
-      
-      // Visual feedback: mark as applying
-      const button = document.getElementById(`replace-all-btn-${groupIndex}`);
+      // Visual feedback: mark as applied
+      const button = event.target;
       if (button) {
         button.style.background = '#41D7AF';
-        button.textContent = '✅ Replaced';
+        button.textContent = '✅ Repaired';
         button.disabled = true;
       }
-      
-      // Mark the group as replaced
-      if (window.allVariableGroups[groupIndex]) {
-        window.allVariableGroups[groupIndex].replaced = true;
-      }
-      
-      // Update the card visual appearance
-      const card = button.closest('.suggestion-item');
-      if (card) {
-        card.style.borderLeftColor = '#41D7AF';
-        card.style.background = '#f0fffe';
-        
-        // Update text colors
-        const objectInfo = card.querySelector('.object-info');
-        const currentVariable = card.querySelector('.current-variable');
-        if (objectInfo) objectInfo.style.color = '#065f46';
-        if (currentVariable) currentVariable.style.color = '#065f46';
-        
-        // Add success checkmark to header
-        if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
-          const successSpan = document.createElement('span');
-          successSpan.className = 'success-indicator';
-          successSpan.style.cssText = 'color: #41D7AF; font-size: 12px; margin-left: 8px;';
-          successSpan.textContent = '✅ Replaced';
-          objectInfo.appendChild(successSpan);
-        }
-      }
-      
-      // Disable the dropdown
-      selectElement.disabled = true;
-      
-      // Replace variable for each object in the group
-      group.objects.forEach((obj, index) => {
-        console.log(`Replacing all-variable object ${index + 1}:`, obj.node.id, obj.property, newVariableId);
-        
-        parent.postMessage({
-          pluginMessage: {
-            type: 'replace-variable',
-            nodeId: obj.node.id,
-            property: obj.property,
-            newVariableId: newVariableId,
-            fillIndex: obj.fillIndex || 0,
-            strokeIndex: obj.strokeIndex || 0
-          }
-        }, '*');
-        replacementCount++;
-      });
-      
-      showStatus(`✅ Successfully replaced variable for ${replacementCount} objects!`, 'success');
-      
-      // Re-run detection after a short delay to update the UI
-      setTimeout(() => {
-        console.log('Re-running variable check after all-variable replacement...');
-        parent.postMessage({
-          pluginMessage: { type: 'check-variables' }
-        }, '*');
-      }, 1000);
-    };
-
-    // Apply orphaned variable replacement
-    window.applyOrphanedReplacement = function(index) {
-      console.log('applyOrphanedReplacement called with index:', index);
-      
-      if (!window.orphanedObjects || !window.orphanedObjects[index]) {
-        console.error('Orphaned object not found at index:', index);
-        showStatus('Object not found', 'error');
-        return;
-      }
-      
-      const item = window.orphanedObjects[index];
-      const variableId = item.detectedVariable.id;
-      
-      console.log('Connecting orphaned object:', item.node.id, item.property, variableId);
-      
-      parent.postMessage({
-        pluginMessage: {
-          type: 'replace-variable',
-          nodeId: item.node.id,
-          property: item.property,
-          newVariableId: variableId,
-          fillIndex: item.fillIndex || 0,
-          strokeIndex: item.strokeIndex || 0
-        }
-      }, '*');
-      
-      showStatus(`Connecting ${item.node.name} to ${item.detectedVariable.name}...`, 'info');
-      
-      // Re-run detection after a short delay to update the UI
-      setTimeout(() => {
-        console.log('Re-running variable check...');
-        parent.postMessage({
-          pluginMessage: { type: 'check-variables' }
-        }, '*');
-      }, 1000);
-    };
-
-    // Initialize when page loads
-    window.addEventListener('load', function() {
-      console.log('Page loaded. Available functions:');
-      console.log('- applyGroupReplacement:', typeof applyGroupReplacement);
-      console.log('- applySelectedVariable:', typeof applySelectedVariable);
-      console.log('- updateSelectedVariable:', typeof updateSelectedVariable);
-    });
+    }
   </script>
-    </div>
-  </div>
 </body>
 </html>
