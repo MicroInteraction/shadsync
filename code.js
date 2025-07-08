@@ -428,7 +428,12 @@ async function checkUsedVariables() {
       unassignedObjects,
       shadSyncVariables,
       analyzedNodes: nodesToAnalyze.length,
-      hasSelection: selection.length > 0
+      hasSelection: selection.length > 0,
+      scanSummary: {
+        nonShadSyncCount: nonShadSyncVariables.length,
+        unassignedCount: unassignedObjects.length,
+        shadSyncCount: variablesByCollection['shadsync theme'] ? variablesByCollection['shadsync theme'].length : 0
+      }
     }
   });
 }

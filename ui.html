@@ -428,28 +428,46 @@
   <!-- Detect Tab -->
   <div id="detect-tab" class="tab-content hidden">
     <div class="section">
-      <div class="section-title">Detect Variable Issues</div>
+      <div class="section-title">Find & Replace Variables</div>
+      <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
+        Detects objects using variables from other collections and suggests shadsync theme replacements.
+      </p>
       <button class="button button-secondary" id="check-variables">
-        Scan Document
+        Scan for Non-ShadSync Variables
       </button>
       
       <div id="variables-result" class="hidden">
         <!-- Non-ShadSync Variables Section -->
         <div id="non-shadsync-section" class="hidden">
-          <div class="section-title">Variables from Other Collections</div>
+          <div class="section-title" style="color: #ff6b35;">⚠️ Variables from Other Collections</div>
+          <p style="font-size: 11px; color: #666; margin-bottom: 12px;">
+            These objects are using variables from other collections. Replace them with shadsync theme variables:
+          </p>
           <div class="suggestion-list" id="non-shadsync-list"></div>
         </div>
         
         <!-- Unassigned Objects Section -->
         <div id="unassigned-section" class="hidden">
-          <div class="section-title">Objects Without Variables</div>
+          <div class="section-title" style="color: #999;">Objects Without Variables</div>
+          <p style="font-size: 11px; color: #666; margin-bottom: 12px;">
+            These objects have colors but no variables assigned:
+          </p>
           <div class="suggestion-list" id="unassigned-list"></div>
         </div>
         
         <!-- Current Usage Summary -->
         <div id="usage-summary" class="hidden">
-          <div class="section-title">Current Variable Usage</div>
+          <div class="section-title" style="color: #4caf50;">✅ Current ShadSync Usage</div>
           <div id="variables-list"></div>
+        </div>
+        
+        <!-- All Clear Message -->
+        <div id="all-clear-message" class="hidden">
+          <div style="text-align: center; padding: 24px; color: #4caf50;">
+            <div style="font-size: 18px; margin-bottom: 8px;">🎉</div>
+            <div style="font-weight: 600; margin-bottom: 4px;">All Good!</div>
+            <div style="font-size: 12px; color: #666;">All objects are using shadsync theme variables or have no variables assigned.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -554,6 +572,15 @@
           
         case 'variables-check-result':
           displayVariablesResult(msg.data);
+          // Show scan summary
+          const summary = msg.data.scanSummary;
+          if (summary.nonShadSyncCount > 0) {
+            showStatus(`Found ${summary.nonShadSyncCount} objects using non-shadsync variables`, 'error');
+          } else if (summary.unassignedCount > 0) {
+            showStatus(`Found ${summary.unassignedCount} objects without variables assigned`, 'info');
+          } else {
+            showStatus('All objects are using shadsync theme variables! 🎉', 'success');
+          }
           break;
       }
     };
@@ -566,8 +593,9 @@
       const nonShadSyncSection = document.getElementById('non-shadsync-section');
       const unassignedSection = document.getElementById('unassigned-section');
       const usageSummarySection = document.getElementById('usage-summary');
+      const allClearMessage = document.getElementById('all-clear-message');
       
-      // Non-ShadSync Variables
+      // Priority 1: Non-ShadSync Variables (most important)
       if (data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0) {
         displayNonShadSyncVariables(data.nonShadSyncVariables);
         nonShadSyncSection.classList.remove('hidden');
@@ -575,7 +603,7 @@
         nonShadSyncSection.classList.add('hidden');
       }
       
-      // Unassigned Objects
+      // Priority 2: Unassigned Objects (secondary)
       if (data.unassignedObjects && data.unassignedObjects.length > 0) {
         displayUnassignedObjects(data.unassignedObjects);
         unassignedSection.classList.remove('hidden');
@@ -583,23 +611,23 @@
         unassignedSection.classList.add('hidden');
       }
       
-      // Usage Summary
-      if (data.variablesByCollection && Object.keys(data.variablesByCollection).length > 0) {
+      // Usage Summary (always show if we have shadsync variables being used)
+      if (data.variablesByCollection && data.variablesByCollection['shadsync theme']) {
         displayUsageSummary(data.variablesByCollection, data.mainCollectionName);
         usageSummarySection.classList.remove('hidden');
       } else {
         usageSummarySection.classList.add('hidden');
       }
       
-      // Show results if any data exists
-      if (data.nonShadSyncVariables?.length > 0 || data.unassignedObjects?.length > 0 || data.totalUsed > 0) {
-        resultDiv.classList.remove('hidden');
+      // Show "All Clear" message if no issues found
+      if ((!data.nonShadSyncVariables || data.nonShadSyncVariables.length === 0) && 
+          (!data.unassignedObjects || data.unassignedObjects.length === 0)) {
+        allClearMessage.classList.remove('hidden');
       } else {
-        const listDiv = document.getElementById('variables-list');
-        listDiv.innerHTML = '<div class="variable-item">No variable issues found! 🎉</div>';
-        resultDiv.classList.remove('hidden');
+        allClearMessage.classList.add('hidden');
       }
       
+      resultDiv.classList.remove('hidden');
       hideStatus();
     }
     
@@ -615,12 +643,14 @@
           'background: #ccc';
         
         html += `
-          <div class="suggestion-item">
+          <div class="suggestion-item" style="border-left: 3px solid #ff6b35;">
             <div class="suggestion-header">
-              <div class="object-info">${item.node.name} (${item.node.type})</div>
+              <div class="object-info" style="font-weight: 600;">${item.node.name} (${item.node.type})</div>
             </div>
-            <div class="current-variable">
-              Currently: <strong>${item.currentVariable.name}</strong> from "${item.currentVariable.collection}"
+            <div class="current-variable" style="background: #fff3f0; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px;">
+              <span style="color: #ff6b35; font-weight: 600;">Currently using:</span> 
+              <strong>${item.currentVariable.name}</strong> 
+              <span style="color: #666;">from "${item.currentVariable.collection}"</span>
             </div>
         `;
         
@@ -629,24 +659,25 @@
             <div class="suggestion-row">
               <div class="color-preview" style="${colorStyle}"></div>
               <select class="select-dropdown" id="select-${index}-non" onchange="updateSelectedVariable('${item.node.id}', '${item.property}', this.value, ${item.fillIndex || 0}, ${item.strokeIndex || 0})">
-                <option value="">Choose shadsync variable...</option>
+                <option value="">🔄 Choose shadsync replacement...</option>
           `;
           
           item.allSuggestions.forEach(suggestion => {
             const selected = item.suggestion && suggestion.id === item.suggestion.id ? 'selected' : '';
-            html += `<option value="${suggestion.id}" ${selected}>${suggestion.name} (${suggestion.score}% match)</option>`;
+            const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
+            html += `<option value="${suggestion.id}" ${selected}>${emoji} ${suggestion.name} (${suggestion.score}% match)</option>`;
           });
           
           html += `
               </select>
-              <button class="replace-btn" onclick="applySelectedVariable('${item.node.id}', '${item.property}', 'select-${index}-non', ${item.fillIndex || 0}, ${item.strokeIndex || 0})">
+              <button class="replace-btn" onclick="applySelectedVariable('${item.node.id}', '${item.property}', 'select-${index}-non', ${item.fillIndex || 0}, ${item.strokeIndex || 0})" style="background: #ff6b35;">
                 Replace
               </button>
             </div>
           `;
         } else {
           html += `
-            <div class="no-suggestion">No matching shadsync variable found</div>
+            <div class="no-suggestion" style="color: #ff6b35; font-style: italic;">❌ No matching shadsync variable found</div>
           `;
         }
         
