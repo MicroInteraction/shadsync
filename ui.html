@@ -382,6 +382,176 @@
       font-size: 12px;
       font-family: 'SF Mono', Monaco, monospace;
     }
+
+    .variable-group {
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .variable-group-header {
+      background: #fff3f0;
+      padding: 12px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .affected-objects {
+      background: #fafafa;
+      padding: 12px;
+    }
+
+    .object-item {
+      display: flex;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .object-item:last-child {
+      border-bottom: none;
+    }
+
+    .group-replacement {
+      margin-top: 12px;
+    }
+
+    .suggestion-item {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .suggestion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .object-info {
+      font-size: 12px;
+      color: #666;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .current-variable {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .suggestion-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .color-preview {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+
+    .variable-name {
+      flex: 1;
+      font-size: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+      color: #333;
+    }
+
+    .replace-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .replace-btn:hover {
+      background: #ff5722;
+    }
+
+    .replace-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .no-suggestion {
+      color: #999;
+      font-style: italic;
+      font-size: 12px;
+    }
+
+    .suggestion-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .dropdown-suggestions {
+      margin-top: 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      background: white;
+      max-height: 150px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .dropdown-suggestions.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .dropdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .dropdown-item:hover {
+      background: #f5f5f5;
+    }
+
+    .suggestion-score {
+      font-size: 10px;
+      color: #999;
+      margin-left: auto;
+    }
+
+    .current-selection {
+      background: #e3f2fd !important;
+      color: #1976d2;
+    }
+
+    .select-dropdown {
+      width: 100%;
+      padding: 4px 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      background: white;
+      font-size: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
   </style>
 </head>
 <body>
@@ -441,7 +611,7 @@
         <div id="non-shadsync-section" class="hidden">
           <div class="section-title" style="color: #ff6b35;">⚠️ Variables from Other Collections</div>
           <p style="font-size: 11px; color: #666; margin-bottom: 12px;">
-            These objects are using variables from other collections. Replace them with shadsync theme variables:
+            These variables from other collections are being used. Replace them with shadsync theme variables:
           </p>
           <div class="suggestion-list" id="non-shadsync-list"></div>
         </div>
@@ -575,7 +745,7 @@
           // Show scan summary
           const summary = msg.data.scanSummary;
           if (summary.nonShadSyncCount > 0) {
-            showStatus(`Found ${summary.nonShadSyncCount} objects using non-shadsync variables`, 'error');
+            showStatus(`Found ${summary.nonShadSyncCount} non-shadsync variable${summary.nonShadSyncCount !== 1 ? 's' : ''} in use`, 'error');
           } else if (summary.unassignedCount > 0) {
             showStatus(`Found ${summary.unassignedCount} objects without variables assigned`, 'info');
           } else {
@@ -631,60 +801,98 @@
       hideStatus();
     }
     
-    // Display variables from non-shadsync collections
+    // Display variables from non-shadsync collections (grouped by variable)
     function displayNonShadSyncVariables(nonShadSyncVariables) {
       const listDiv = document.getElementById('non-shadsync-list');
       let html = '';
       
-      nonShadSyncVariables.forEach((item, index) => {
-        const hasColor = item.color && (item.color.r !== undefined || item.color.g !== undefined || item.color.b !== undefined);
-        const colorStyle = hasColor ? 
-          `background: rgb(${Math.round((item.color.r || 0) * 255)}, ${Math.round((item.color.g || 0) * 255)}, ${Math.round((item.color.b || 0) * 255)})` : 
-          'background: #ccc';
-        
+      nonShadSyncVariables.forEach((variableGroup, groupIndex) => {
+        // Variable group header
         html += `
-          <div class="suggestion-item" style="border-left: 3px solid #ff6b35;">
-            <div class="suggestion-header">
-              <div class="object-info" style="font-weight: 600;">${item.node.name} (${item.node.type})</div>
-            </div>
-            <div class="current-variable" style="background: #fff3f0; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px;">
-              <span style="color: #ff6b35; font-weight: 600;">Currently using:</span> 
-              <strong>${item.currentVariable.name}</strong> 
-              <span style="color: #666;">from "${item.currentVariable.collection}"</span>
-            </div>
+          <div class="variable-group" style="border-left: 3px solid #ff6b35; margin-bottom: 16px; background: #fff;">
+            <div class="variable-group-header" style="background: #fff3f0; padding: 12px; border-radius: 6px 6px 0 0;">
+              <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 8px;">
+                <div>
+                  <span style="color: #ff6b35; font-weight: 600;">Variable:</span> 
+                  <strong>${variableGroup.currentVariable.name}</strong> 
+                  <span style="color: #666;">from "${variableGroup.currentVariable.collection}"</span>
+                </div>
+                <span style="background: #ff6b35; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
+                  ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              
+              <!-- Replacement dropdown for the entire group -->
+              <div class="group-replacement" style="margin-top: 12px;">
+                <select class="select-dropdown" id="select-group-${groupIndex}" style="width: 100%; margin-bottom: 8px;">
+                  <option value="">🔄 Choose shadsync replacement for all objects...</option>
         `;
         
-        if (item.allSuggestions && item.allSuggestions.length > 0) {
-          html += `
-            <div class="suggestion-row">
-              <div class="color-preview" style="${colorStyle}"></div>
-              <select class="select-dropdown" id="select-${index}-non" onchange="updateSelectedVariable('${item.node.id}', '${item.property}', this.value, ${item.fillIndex || 0}, ${item.strokeIndex || 0})">
-                <option value="">🔄 Choose shadsync replacement...</option>
-          `;
+        // Add all shadsync variables to dropdown
+        if (variableGroup.allShadSyncVariables && variableGroup.allShadSyncVariables.length > 0) {
+          // First show smart suggestions if any
+          if (variableGroup.allSuggestions && variableGroup.allSuggestions.length > 0) {
+            html += '<optgroup label="📍 Smart Suggestions">';
+            variableGroup.allSuggestions.forEach(suggestion => {
+              const selected = variableGroup.suggestion && suggestion.id === variableGroup.suggestion.id ? 'selected' : '';
+              const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
+              html += `<option value="${suggestion.id}" ${selected}>${emoji} ${suggestion.name} (${suggestion.score}% match)</option>`;
+            });
+            html += '</optgroup>';
+          }
           
-          item.allSuggestions.forEach(suggestion => {
-            const selected = item.suggestion && suggestion.id === item.suggestion.id ? 'selected' : '';
-            const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
-            html += `<option value="${suggestion.id}" ${selected}>${emoji} ${suggestion.name} (${suggestion.score}% match)</option>`;
+          // Then show all available variables
+          html += '<optgroup label="🎨 All ShadSync Variables">';
+          variableGroup.allShadSyncVariables.forEach(variable => {
+            const isInSuggestions = variableGroup.allSuggestions && 
+              variableGroup.allSuggestions.some(s => s.id === variable.id);
+            if (!isInSuggestions) {
+              html += `<option value="${variable.id}">${variable.name}</option>`;
+            }
           });
-          
-          html += `
-              </select>
-              <button class="replace-btn" onclick="applySelectedVariable('${item.node.id}', '${item.property}', 'select-${index}-non', ${item.fillIndex || 0}, ${item.strokeIndex || 0})" style="background: #ff6b35;">
-                Replace
-              </button>
-            </div>
-          `;
-        } else {
-          html += `
-            <div class="no-suggestion" style="color: #ff6b35; font-style: italic;">❌ No matching shadsync variable found</div>
-          `;
+          html += '</optgroup>';
         }
         
-        html += '</div>';
+        html += `
+                </select>
+                <button class="replace-btn" onclick="applyGroupReplacement(${groupIndex}, 'select-group-${groupIndex}')" 
+                        style="background: #ff6b35; width: 100%;">
+                  Replace All ${variableGroup.objects.length} Objects
+                </button>
+              </div>
+            </div>
+            
+            <!-- List of affected objects -->
+            <div class="affected-objects" style="padding: 12px; background: #fafafa;">
+              <div style="font-weight: 600; margin-bottom: 8px; color: #666;">Affected Objects:</div>
+        `;
+        
+        // Show each affected object
+        variableGroup.objects.forEach((obj, objIndex) => {
+          const hasColor = obj.color && (obj.color.r !== undefined || obj.color.g !== undefined || obj.color.b !== undefined);
+          const colorStyle = hasColor ? 
+            `background: rgb(${Math.round((obj.color.r || 0) * 255)}, ${Math.round((obj.color.g || 0) * 255)}, ${Math.round((obj.color.b || 0) * 255)})` : 
+            'background: #ccc';
+          
+          html += `
+            <div class="object-item" style="display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee;">
+              <div class="color-preview" style="${colorStyle}; width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid #ddd;"></div>
+              <span style="flex: 1;">${obj.node.name} (${obj.node.type})</span>
+              <span style="font-size: 12px; color: #666; text-transform: capitalize;">${obj.property}</span>
+            </div>
+          `;
+        });
+        
+        html += `
+            </div>
+          </div>
+        `;
       });
       
       listDiv.innerHTML = html;
+      
+      // Store the grouped data for replacement functionality
+      window.nonShadSyncGroups = nonShadSyncVariables;
     }
     
     // Display objects without variables
@@ -806,6 +1014,49 @@
           strokeIndex: strokeIndex
         }
       }, '*');
+    }
+
+    // Apply group replacement - replace variable for all objects in a group
+    function applyGroupReplacement(groupIndex, selectId) {
+      const selectElement = document.getElementById(selectId);
+      const newVariableId = selectElement.value;
+      
+      if (!newVariableId) {
+        showStatus('Please select a variable first', 'error');
+        return;
+      }
+      
+      if (!window.nonShadSyncGroups || !window.nonShadSyncGroups[groupIndex]) {
+        showStatus('Group data not found', 'error');
+        return;
+      }
+      
+      const group = window.nonShadSyncGroups[groupIndex];
+      let replacementCount = 0;
+      
+      // Replace variable for each object in the group
+      group.objects.forEach(obj => {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'replace-variable',
+            nodeId: obj.node.id,
+            property: obj.property,
+            newVariableId: newVariableId,
+            fillIndex: obj.fillIndex || 0,
+            strokeIndex: obj.strokeIndex || 0
+          }
+        }, '*');
+        replacementCount++;
+      });
+      
+      showStatus(`Replacing variable for ${replacementCount} objects...`, 'info');
+      
+      // Re-run detection after a short delay to update the UI
+      setTimeout(() => {
+        parent.postMessage({
+          pluginMessage: { type: 'check-variables' }
+        }, '*');
+      }, 1000);
     }
 
   </script>
