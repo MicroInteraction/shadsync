@@ -1180,7 +1180,7 @@
           <div class="suggestion-item" style="border-left: 4px solid ${borderColor}; background: ${backgroundColor};">
             <div class="suggestion-header">
               <div class="object-info" style="color: ${textColor};">
-                Variable: <strong>${variableGroup.currentVariable.name}</strong> from "${variableGroup.currentVariable.collection}"
+                <strong>${variableGroup.currentVariable.name}</strong>
                 <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; margin-left: 8px;">
                   ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
                 </span>
@@ -1189,8 +1189,7 @@
               </div>
             </div>
             <div class="current-variable" style="color: ${textColor};">
-              ${variableGroup.objects[0]?.node?.name || 'Multiple objects'} (${variableGroup.objects[0]?.node?.type || 'various types'})
-              ${variableGroup.objects.length > 1 ? ` + ${variableGroup.objects.length - 1} more` : ''}
+              No variable assigned
             </div>
             
             <div class="suggestion-row">
@@ -1230,7 +1229,7 @@
               </select>
               <button class="replace-btn" id="replace-all-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-all-group-${groupIndex}"
                       style="background: ${borderColor};" ${isReplaced ? 'disabled' : ''}>
-                ${isReplaced ? '✅ Applied' : 'Apply'}
+                ${isReplaced ? '✅ Replaced' : 'Replace'}
               </button>
             </div>
           </div>
@@ -1661,7 +1660,7 @@
       const button = document.getElementById(`replace-all-btn-${groupIndex}`);
       if (button) {
         button.style.background = '#4caf50';
-        button.textContent = '✅ Applied';
+        button.textContent = '✅ Replaced';
         button.disabled = true;
       }
       
