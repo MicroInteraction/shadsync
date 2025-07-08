@@ -22,6 +22,9 @@ figma.ui.onmessage = async (msg) => {
       case 'update-radius-tokens':
         await updateRadiusTokensFromBase();
         break;
+      case 'set-radius-preset':
+        await setRadiusPreset(parseFloat(msg.radiusValue));
+        break;
       default:
         console.log('Unknown message type:', msg.type);
     }
@@ -952,6 +955,68 @@ async function updateRadiusTokensFromCSS(radiusValue) {
   if (updatedCount > 0) {
     console.log(`Updated ${updatedCount} radius tokens based on --radius: ${radiusValue}`);
   }
+}
+
+// ✨ FEATURE: Set radius tokens using preset values
+// Sets all radius tokens based on a base rem value with predefined multipliers
+async function setRadiusPreset(baseRemValue) {
+  const remToPx = 16;
+  const basePx = baseRemValue * remToPx;
+
+  // Find the shadsync collection
+  const collection = figma.variables.getLocalVariableCollections()
+    .find(c => c.name === 'shadsync theme');
+  
+  if (!collection) {
+    figma.notify('shadsync theme collection not found', { error: true });
+    return;
+  }
+
+  // Get the first mode (usually Light mode)
+  const modeId = collection.modes[0].modeId;
+
+  // Define the scaling logic exactly as specified
+  const radiusMap = {
+    'radius-sm': 0,           // Always 0
+    'radius': 1,              // 1x base (default)
+    'radius-md': 1.5,         // 1.5x base  
+    'radius-lg': 2,           // 2x base
+    'radius-xl': 3,           // 3x base
+    'radius-2xl': 4,          // 4x base (changed from xxl to 2xl)
+    'radius-full': 9999       // Always 9999px
+  };
+
+  let updatedCount = 0;
+  let createdCount = 0;
+  
+  for (const [tokenName, multiplier] of Object.entries(radiusMap)) {
+    // Look for existing radius tokens in the collection
+    let token = figma.variables.getLocalVariables().find(v => 
+      v.name === tokenName && v.variableCollectionId === collection.id
+    );
+    
+    // Create token if it doesn't exist
+    if (!token) {
+      token = figma.variables.createVariable(tokenName, collection, 'FLOAT');
+      createdCount++;
+    } else {
+      updatedCount++;
+    }
+    
+    // Calculate value
+    const value = multiplier === 9999 ? 9999 : Math.round(multiplier * basePx);
+    token.setValueForMode(modeId, value);
+  }
+  
+  const totalTokens = updatedCount + createdCount;
+  const baseLabel = baseRemValue === 0 ? '0' : `${baseRemValue}rem`;
+  figma.notify(`✨ Set ${totalTokens} radius tokens to ${baseLabel} base (${createdCount} created, ${updatedCount} updated)`);
+  
+  // Also update the UI
+  figma.ui.postMessage({
+    type: 'success',
+    message: `Radius tokens set to ${baseLabel} base: ${totalTokens} tokens updated`
+  });
 }
 
 // Initialize

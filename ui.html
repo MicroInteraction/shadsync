@@ -834,9 +834,23 @@
       Update Variables
     </button>
     
-    <button class="button button-secondary" id="update-radius-tokens" style="margin-top: 12px;">
-      ✨ Update Radius Tokens
-    </button>
+    <div style="margin-top: 24px;">
+      <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #1F2937;">Radius Presets</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+        <button class="button button-secondary radius-preset-btn" data-radius="0" style="font-size: 12px; padding: 8px;">
+          0
+        </button>
+        <button class="button button-secondary radius-preset-btn" data-radius="0.25" style="font-size: 12px; padding: 8px;">
+          0.25
+        </button>
+        <button class="button button-secondary radius-preset-btn" data-radius="0.5" style="font-size: 12px; padding: 8px;">
+          0.5
+        </button>
+        <button class="button button-secondary radius-preset-btn" data-radius="0.75" style="font-size: 12px; padding: 8px;">
+          0.75
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Detect Tab -->
@@ -999,16 +1013,20 @@
       }, '*');
     });
 
-    // Update Radius Tokens
-    document.getElementById('update-radius-tokens').addEventListener('click', () => {
-      showStatus('Updating radius tokens based on base value...', 'info');
-      document.body.classList.add('loading');
-      
-      parent.postMessage({
-        pluginMessage: {
-          type: 'update-radius-tokens'
-        }
-      }, '*');
+    // Radius Preset Buttons
+    document.querySelectorAll('.radius-preset-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const radiusValue = button.getAttribute('data-radius');
+        showStatus(`Setting radius tokens to ${radiusValue}rem base...`, 'info');
+        document.body.classList.add('loading');
+        
+        parent.postMessage({
+          pluginMessage: {
+            type: 'set-radius-preset',
+            radiusValue: radiusValue
+          }
+        }, '*');
+      });
     });
 
     // Handle messages from plugin
