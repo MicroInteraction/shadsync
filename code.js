@@ -655,7 +655,8 @@ function getSortedSuggestions(name, shadSyncVariables, color = null, collection 
 function findAllNameMatches(variableName, shadSyncVariables) {
   const cleanName = variableName.toLowerCase()
     .replace(/^--/, '') // Remove CSS prefix
-    .replace(/[-_]/g, '') // Remove separators
+    .replace(/^base\//, '') // Remove base/ prefix
+    .replace(/[-_/]/g, '') // Remove separators
     .replace(/color$/, '') // Remove "color" suffix
     .replace(/bg$/, 'background') // Convert bg to background
     .replace(/fg$/, 'foreground') // Convert fg to foreground
@@ -666,35 +667,98 @@ function findAllNameMatches(variableName, shadSyncVariables) {
   for (const variable of shadSyncVariables) {
     const varCleanName = variable.name.toLowerCase().replace(/[-_]/g, '');
     let score = 0;
+    let matchType = '';
     
-    // Exact match
+    // 1. EXACT MATCH (Highest Priority - Score 100)
     if (varCleanName === cleanName) {
       score = 100;
+      matchType = 'exact';
     }
-    // Contains match
+    // 2. EXACT WORD MATCH after removing common prefixes (Score 95)
+    else if (cleanName.includes('primary') && varCleanName.includes('primary')) {
+      if (cleanName.includes('foreground') && varCleanName === 'primaryforeground') {
+        score = 95;
+        matchType = 'exact-semantic';
+      } else if (!cleanName.includes('foreground') && varCleanName === 'primary') {
+        score = 95;
+        matchType = 'exact-semantic';
+      }
+    }
+    else if (cleanName.includes('muted') && varCleanName.includes('muted')) {
+      if (cleanName.includes('foreground') && varCleanName === 'mutedforeground') {
+        score = 95;
+        matchType = 'exact-semantic';
+      } else if (!cleanName.includes('foreground') && varCleanName === 'muted') {
+        score = 95;
+        matchType = 'exact-semantic';
+      }
+    }
+    else if (cleanName.includes('secondary') && varCleanName.includes('secondary')) {
+      if (cleanName.includes('foreground') && varCleanName === 'secondaryforeground') {
+        score = 95;
+        matchType = 'exact-semantic';
+      } else if (!cleanName.includes('foreground') && varCleanName === 'secondary') {
+        score = 95;
+        matchType = 'exact-semantic';
+      }
+    }
+    else if (cleanName.includes('destructive') && varCleanName.includes('destructive')) {
+      if (cleanName.includes('foreground') && varCleanName === 'destructiveforeground') {
+        score = 95;
+        matchType = 'exact-semantic';
+      } else if (!cleanName.includes('foreground') && varCleanName === 'destructive') {
+        score = 95;
+        matchType = 'exact-semantic';
+      }
+    }
+    else if (cleanName.includes('accent') && varCleanName.includes('accent')) {
+      if (cleanName.includes('foreground') && varCleanName === 'accentforeground') {
+        score = 95;
+        matchType = 'exact-semantic';
+      } else if (!cleanName.includes('foreground') && varCleanName === 'accent') {
+        score = 95;
+        matchType = 'exact-semantic';
+      }
+    }
+    // 3. SEMANTIC COMPONENT MATCHES (Score 90)
+    else if (cleanName.includes('foreground') && varCleanName.includes('foreground')) {
+      score = 90;
+      matchType = 'semantic-foreground';
+    }
+    else if (cleanName.includes('background') && varCleanName.includes('background')) {
+      score = 90;
+      matchType = 'semantic-background';
+    }
+    else if (cleanName.includes('border') && varCleanName.includes('border')) {
+      score = 90;
+      matchType = 'semantic-border';
+    }
+    // 4. CONTAINS MATCH (Score 85)
     else if (varCleanName.includes(cleanName) || cleanName.includes(varCleanName)) {
-      score = 80;
+      score = 85;
+      matchType = 'contains';
     }
-    // Pattern matching
+    // 5. PATTERN MATCHING (Score 70-80)
     else {
       const patterns = [
-        { pattern: /background/i, targets: ['background', 'card', 'popover'], boost: 70 },
-        { pattern: /foreground/i, targets: ['foreground', 'cardforeground', 'popoverforeground'], boost: 70 },
-        { pattern: /primary/i, targets: ['primary', 'primaryforeground'], boost: 70 },
-        { pattern: /secondary/i, targets: ['secondary', 'secondaryforeground'], boost: 70 },
-        { pattern: /border/i, targets: ['border', 'input'], boost: 70 },
-        { pattern: /text/i, targets: ['foreground', 'mutedforeground'], boost: 60 },
-        { pattern: /accent/i, targets: ['accent', 'accentforeground'], boost: 70 },
-        { pattern: /muted/i, targets: ['muted', 'mutedforeground'], boost: 70 },
-        { pattern: /destructive/i, targets: ['destructive', 'destructiveforeground'], boost: 70 },
-        { pattern: /ring/i, targets: ['ring'], boost: 70 },
-        { pattern: /input/i, targets: ['input', 'border'], boost: 60 }
+        { pattern: /background/i, targets: ['background', 'card', 'popover'], boost: 75 },
+        { pattern: /foreground/i, targets: ['foreground', 'cardforeground', 'popoverforeground'], boost: 75 },
+        { pattern: /primary/i, targets: ['primary', 'primaryforeground'], boost: 75 },
+        { pattern: /secondary/i, targets: ['secondary', 'secondaryforeground'], boost: 75 },
+        { pattern: /border/i, targets: ['border', 'input'], boost: 75 },
+        { pattern: /text/i, targets: ['foreground', 'mutedforeground'], boost: 70 },
+        { pattern: /accent/i, targets: ['accent', 'accentforeground'], boost: 75 },
+        { pattern: /muted/i, targets: ['muted', 'mutedforeground'], boost: 75 },
+        { pattern: /destructive/i, targets: ['destructive', 'destructiveforeground'], boost: 75 },
+        { pattern: /ring/i, targets: ['ring'], boost: 75 },
+        { pattern: /input/i, targets: ['input', 'border'], boost: 70 }
       ];
       
       for (const { pattern, targets, boost } of patterns) {
         if (pattern.test(cleanName)) {
           if (targets.includes(varCleanName)) {
             score = boost;
+            matchType = 'pattern';
             break;
           }
         }
@@ -706,7 +770,8 @@ function findAllNameMatches(variableName, shadSyncVariables) {
         id: variable.id,
         name: variable.name,
         type: variable.type,
-        score: score
+        score: score,
+        matchType: matchType
       });
     }
   }
@@ -714,7 +779,7 @@ function findAllNameMatches(variableName, shadSyncVariables) {
   return matches;
 }
 
-// Find all color-based matches with scoring
+// Find all color-based matches with scoring (LOWER priority than name matches)
 function findAllColorMatches(color, shadSyncVariables, collection) {
   if (!color || !shadSyncVariables.length) return [];
   
@@ -731,19 +796,20 @@ function findAllColorMatches(color, shadSyncVariables, collection) {
     
     const distance = calculateColorDistance(color, variableColor);
     
-    // Convert distance to score (lower distance = higher score)
+    // Convert distance to score (REDUCED scores to be lower than name matches)
     let score = 0;
-    if (distance < 0.1) score = 90;
-    else if (distance < 0.2) score = 70;
-    else if (distance < 0.3) score = 50;
-    else if (distance < 0.5) score = 30;
+    if (distance < 0.1) score = 60; // Reduced from 90
+    else if (distance < 0.2) score = 50; // Reduced from 70
+    else if (distance < 0.3) score = 40; // Reduced from 50
+    else if (distance < 0.5) score = 30; // Kept same
     
     if (score > 0) {
       matches.push({
         id: variable.id,
         name: variable.name,
         type: variable.type,
-        score: score
+        score: score,
+        matchType: 'color'
       });
     }
   }
