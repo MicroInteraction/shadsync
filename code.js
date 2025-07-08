@@ -627,7 +627,15 @@ async function checkUsedVariables() {
   
   // Detect orphaned variables by analyzing visual properties
   console.log('Starting orphaned variables detection...');
-  const orphanedObjects = await detectOrphanedVariables(nodesToAnalyze, shadSyncCollection, shadSyncVariables);
+  let orphanedObjects = [];
+  
+  try {
+    orphanedObjects = await detectOrphanedVariables(nodesToAnalyze, shadSyncCollection, shadSyncVariables);
+  } catch (error) {
+    console.error('Error in orphaned variables detection:', error);
+    // Continue with empty orphaned objects if detection fails
+    orphanedObjects = [];
+  }
   
   // Convert grouped data to array format
   const groupedNonShadSyncArray = Object.values(groupedNonShadSync);
@@ -1301,17 +1309,19 @@ async function detectOrphanedVariables(nodesToAnalyze, shadSyncCollection, shadS
   
   const orphanedObjects = [];
   
-  // Get all variable values from the shadsync collection for comparison
-  const variableValues = await getVariableValues(shadSyncVariables, shadSyncCollection);
-  
-  for (const node of nodesToAnalyze) {
-    if (node.type === 'GROUP' || node.type === 'SECTION') continue;
+  try {
+    // Get all variable values from the shadsync collection for comparison
+    const variableValues = await getVariableValues(shadSyncVariables, shadSyncCollection);
+    console.log('Variable values retrieved:', Object.keys(variableValues.colors).length, 'colors,', Object.keys(variableValues.radius).length, 'radius');
     
-    const nodeInfo = {
-      id: node.id,
-      name: node.name,
-      type: node.type
-    };
+    for (const node of nodesToAnalyze) {
+      if (node.type === 'GROUP' || node.type === 'SECTION') continue;
+      
+      const nodeInfo = {
+        id: node.id,
+        name: node.name,
+        type: node.type
+      };
     
     // Check fills for orphaned color variables
     if ('fills' in node && node.fills && Array.isArray(node.fills)) {
@@ -1385,6 +1395,11 @@ async function detectOrphanedVariables(nodesToAnalyze, shadSyncCollection, shadS
   
   console.log(`Found ${orphanedObjects.length} potentially orphaned variables`);
   return orphanedObjects;
+  
+  } catch (error) {
+    console.error('Error in detectOrphanedVariables:', error);
+    return [];
+  }
 }
 
 // Get actual values of all variables in a collection
