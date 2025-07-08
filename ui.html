@@ -1092,7 +1092,8 @@
           if (variableGroup.allSuggestions && variableGroup.allSuggestions.length > 0) {
             variableGroup.allSuggestions.forEach(suggestion => {
               const selected = variableGroup.suggestion && suggestion.id === variableGroup.suggestion.id ? 'selected' : '';
-              html += `<option value="${suggestion.id}" ${selected}>${suggestion.name} (${suggestion.score}% match)</option>`;
+              const displayName = suggestion.score !== undefined ? `${suggestion.name} (${suggestion.score}% match)` : suggestion.name;
+              html += `<option value="${suggestion.id}" ${selected}>${displayName}</option>`;
             });
           } else {
             html += '<option value="">No suggestions available</option>';
@@ -1185,7 +1186,8 @@
             variableGroup.allSuggestions.forEach(suggestion => {
               const selected = variableGroup.suggestion && suggestion.id === variableGroup.suggestion.id ? 'selected' : '';
               const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
-              html += `<option value="${suggestion.id}" ${selected}>${emoji} ${suggestion.name} (${suggestion.score}% match)</option>`;
+              const displayName = suggestion.score !== undefined ? `${emoji} ${suggestion.name} (${suggestion.score}% match)` : `${emoji} ${suggestion.name}`;
+              html += `<option value="${suggestion.id}" ${selected}>${displayName}</option>`;
             });
             html += '</optgroup>';
           }
@@ -1277,7 +1279,8 @@
           
           item.allSuggestions.forEach(suggestion => {
             const selected = item.suggestion && suggestion.id === item.suggestion.id ? 'selected' : '';
-            html += `<option value="${suggestion.id}" ${selected}>${suggestion.name} (${suggestion.score}% match)</option>`;
+            const displayName = suggestion.score !== undefined ? `${suggestion.name} (${suggestion.score}% match)` : suggestion.name;
+            html += `<option value="${suggestion.id}" ${selected}>${displayName}</option>`;
           });
           
           html += `
