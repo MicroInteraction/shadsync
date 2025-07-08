@@ -30,21 +30,22 @@
       font-size: 13px;
       font-weight: 500;
       opacity: 0.8;
+      z-index: 10;
     }
 
     .container {
-      padding: 60px 16px 16px 16px;
+      padding: 60px 0 0 0;
       height: 100vh;
-      overflow-y: auto;
+      overflow: hidden;
     }
 
     .card {
       background: white;
-      border-radius: 16px;
+      border-radius: 0;
       padding: 24px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-      max-width: 400px;
-      margin: 0 auto;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      margin: 0;
     }
 
     .header {
@@ -806,7 +807,31 @@
     </div>
     
     <div id="variables-result" class="hidden">
+      <!-- Non-ShadSync Variables Section -->
+      <div id="non-shadsync-section" class="hidden">
+        <div id="non-shadsync-list"></div>
+      </div>
+      
+      <!-- All Variable-Assigned Objects Section -->
+      <div id="all-variables-section" class="hidden">
+        <div id="all-variables-list"></div>
+      </div>
+      
+      <!-- Unassigned Objects Section -->
+      <div id="unassigned-section" class="hidden">
+        <div id="unassigned-list"></div>
+      </div>
+      
+      <!-- Usage Summary Section -->
+      <div id="usage-summary" class="hidden"></div>
+      
+      <!-- All Clear Message -->
+      <div id="all-clear-message" class="hidden">
+        <div style="text-align: center; padding: 40px; color: #6B7280;">
+          No variables found from other collections. All good! ✅
         </div>
+      </div>
+    </div>
         
         <!-- Non-ShadSync Variables Section -->
         <div id="non-shadsync-section" class="hidden">
@@ -972,14 +997,66 @@
     function displayVariablesResult(data) {
       const resultDiv = document.getElementById('variables-result');
       
+      // Show/hide sections based on data
+      const nonShadSyncSection = document.getElementById('non-shadsync-section');
+      const allVariablesSection = document.getElementById('all-variables-section');
+      const unassignedSection = document.getElementById('unassigned-section');
+      const usageSummarySection = document.getElementById('usage-summary');
+      const allClearMessage = document.getElementById('all-clear-message');
+      
       // Priority 1: Non-ShadSync Variables (most important)
       if (data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0) {
         displayNonShadSyncVariables(data.nonShadSyncVariables);
-        resultDiv.classList.remove('hidden');
+        nonShadSyncSection.classList.remove('hidden');
+        
+        // Show Replace All button
+        const replaceAllBtn = document.getElementById('replace-all-btn');
+        if (replaceAllBtn) {
+          replaceAllBtn.style.display = 'block';
+        }
       } else {
-        resultDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #6B7280;">No variables found from other collections. All good! ✅</div>';
-        resultDiv.classList.remove('hidden');
+        nonShadSyncSection.classList.add('hidden');
+        
+        // Hide Replace All button
+        const replaceAllBtn = document.getElementById('replace-all-btn');
+        if (replaceAllBtn) {
+          replaceAllBtn.style.display = 'none';
+        }
       }
+      
+      // Priority 2: All Variable-Assigned Objects (for review and optimization)
+      if (data.allVariableAssigned && data.allVariableAssigned.length > 0) {
+        displayAllVariableAssigned(data.allVariableAssigned);
+        allVariablesSection.classList.remove('hidden');
+      } else {
+        allVariablesSection.classList.add('hidden');
+      }
+      
+      // Priority 3: Unassigned Objects (secondary)
+      if (data.unassignedObjects && data.unassignedObjects.length > 0) {
+        displayUnassignedObjects(data.unassignedObjects);
+        unassignedSection.classList.remove('hidden');
+      } else {
+        unassignedSection.classList.add('hidden');
+      }
+      
+      // Usage Summary (always show if we have shadsync variables being used)
+      if (data.variablesByCollection && data.variablesByCollection['shadsync theme']) {
+        displayUsageSummary(data.variablesByCollection, data.mainCollectionName);
+        usageSummarySection.classList.remove('hidden');
+      } else {
+        usageSummarySection.classList.add('hidden');
+      }
+      
+      // Show "All Clear" message if no issues found
+      if ((!data.nonShadSyncVariables || data.nonShadSyncVariables.length === 0) && 
+          (!data.unassignedObjects || data.unassignedObjects.length === 0)) {
+        allClearMessage.classList.remove('hidden');
+      } else {
+        allClearMessage.classList.add('hidden');
+      }
+      
+      resultDiv.classList.remove('hidden');
       
       // Set up Replace All button event listener
       setTimeout(() => {
@@ -995,7 +1072,7 @@
     
     // Display variables from non-shadsync collections (grouped by variable)
     function displayNonShadSyncVariables(nonShadSyncVariables) {
-      const resultDiv = document.getElementById('variables-result');
+      const listDiv = document.getElementById('non-shadsync-list');
       let html = '';
       
       if (nonShadSyncVariables.length > 0) {
@@ -1046,7 +1123,7 @@
         html += `</div>`;
       }
       
-      resultDiv.innerHTML = html;
+      listDiv.innerHTML = html;
       
       // Store the grouped data for replacement functionality
       window.nonShadSyncGroups = nonShadSyncVariables;
