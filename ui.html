@@ -1263,9 +1263,8 @@
         html += `
           <div class="suggestion-item">
             <div class="suggestion-header">
-              <div class="object-info">${item.node.name} (${item.node.type})</div>
+              <div class="object-info">${item.node.name.replace(/\s*\(INSTANCE\)$/, '')} (${item.node.type})</div>
             </div>
-            <div class="current-variable">No variable assigned</div>
         `;
         
         if (item.allSuggestions && item.allSuggestions.length > 0) {
