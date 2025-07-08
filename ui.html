@@ -13,28 +13,16 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
-      background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+      background: white;
       color: #333333;
       padding: 0;
       margin: 0;
       height: 100vh;
       overflow: hidden;
-      position: relative;
-    }
-
-    .ui-label {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      color: white;
-      font-size: 13px;
-      font-weight: 500;
-      opacity: 0.8;
-      z-index: 10;
     }
 
     .container {
-      padding: 60px 0 0 0;
+      padding: 0;
       height: 100vh;
       overflow: hidden;
     }
@@ -43,7 +31,7 @@
       background: white;
       border-radius: 0;
       padding: 24px;
-      height: calc(100vh - 60px);
+      height: 100vh;
       overflow-y: auto;
       margin: 0;
     }
@@ -666,6 +654,16 @@
       background: #E55A3A;
     }
 
+    .replace-all-btn:disabled {
+      background: #D1D5DB;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .replace-all-btn:disabled:hover {
+      background: #D1D5DB;
+    }
+
     /* Variable Group Styles */
     .variable-section {
       background: #F8F9FA;
@@ -753,7 +751,6 @@
   </style>
 </head>
 <body>
-  <div class="ui-label">shadsync ui</div>
   <div class="container">
     <div class="card">
       <div class="header">
@@ -802,7 +799,7 @@
       <div class="scan-title">Detect</div>
       <div class="scan-actions">
         <button class="scan-btn" id="check-variables">Scan</button>
-        <button class="replace-all-btn" id="replace-all-btn" style="display: none;">Replace All</button>
+        <button class="replace-all-btn" id="replace-all-btn" disabled>Replace All</button>
       </div>
     </div>
     
@@ -1009,18 +1006,20 @@
         displayNonShadSyncVariables(data.nonShadSyncVariables);
         nonShadSyncSection.classList.remove('hidden');
         
-        // Show Replace All button
+        // Enable Replace All button
         const replaceAllBtn = document.getElementById('replace-all-btn');
         if (replaceAllBtn) {
-          replaceAllBtn.style.display = 'block';
+          replaceAllBtn.disabled = false;
+          replaceAllBtn.style.opacity = '1';
         }
       } else {
         nonShadSyncSection.classList.add('hidden');
         
-        // Hide Replace All button
+        // Disable Replace All button
         const replaceAllBtn = document.getElementById('replace-all-btn');
         if (replaceAllBtn) {
-          replaceAllBtn.style.display = 'none';
+          replaceAllBtn.disabled = true;
+          replaceAllBtn.style.opacity = '0.5';
         }
       }
       
