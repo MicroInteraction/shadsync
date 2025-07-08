@@ -67,18 +67,23 @@
       background: transparent;
       border-radius: 10px;
       cursor: pointer;
+      color: var(--foreground, #000);
       font-size: 15px;
-      font-weight: 600;
-      transition: all 0.2s ease;
-      color: #6B7280;
+      font-style: normal;
+      font-weight: 500;
+      line-height: 20px; /* 133.333% */
+      letter-spacing: -0.45px;
       text-align: center;
+      opacity: 0.3;
+      transition: all 0.2s ease;
     }
 
     .tab.active {
       border: 1px solid #F2F2F2;
       background: #FFF;
       box-shadow: 0px 4px 4px -5px rgba(0, 0, 0, 0.10);
-      color: #333333;
+      color: var(--foreground, #000);
+      opacity: 1;
     }
 
     .tab:hover:not(.active) {
@@ -91,10 +96,13 @@
     }
 
     .section-title {
-      font-size: 16px;
-      font-weight: 600;
+      color: var(--foreground, #000);
+      font-size: 15px;
+      font-style: normal;
+      font-weight: 500;
+      line-height: 28px; /* 186.667% */
+      letter-spacing: -0.45px;
       margin-bottom: 12px;
-      color: #333333;
     }
 
     .input-group {
@@ -625,47 +633,59 @@
       align-items: center;
     }
 
+    /* Scan Button */
     .scan-btn {
-      background: #F8F9FA;
-      color: #374151;
-      border: 1px solid #E5E7EB;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
+      display: flex;
+      padding: 4px 16px;
+      align-items: center;
+      gap: 8px;
+      border-radius: 10px;
+      background: var(--muted, #F5F5F5);
+      border: none;
       cursor: pointer;
       transition: all 0.2s ease;
+      color: var(--foreground, #000);
+      font-size: 15px;
+      font-style: normal;
+      font-weight: 500;
+      line-height: 20px;
+      letter-spacing: -0.45px;
     }
 
     .scan-btn:hover {
-      background: #F3F4F6;
-      border-color: #D1D5DB;
+      opacity: 0.9;
     }
 
+    /* Replace All Button */
     .replace-all-btn {
-      background: #FF6C46;
-      color: white;
+      display: flex;
+      padding: 4px 16px;
+      align-items: center;
+      gap: 8px;
+      border-radius: 10px;
+      background: var(--primary, #FF6C46);
       border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
+      color: white;
+      font-size: 15px;
+      font-style: normal;
+      font-weight: 500;
+      line-height: 20px;
+      letter-spacing: -0.45px;
     }
 
     .replace-all-btn:hover {
-      background: #E55A3A;
+      opacity: 0.9;
     }
 
     .replace-all-btn:disabled {
-      background: #D1D5DB;
-      cursor: not-allowed;
       opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .replace-all-btn:disabled:hover {
-      background: #D1D5DB;
+      opacity: 0.5;
     }
 
     /* Variable Group Styles */
@@ -1170,9 +1190,9 @@
       allVariableAssigned.forEach((variableGroup, groupIndex) => {
         const isShadsyncVariable = variableGroup.currentVariable.collection === 'shadsync theme';
         const isReplaced = variableGroup.replaced === true;
-        const borderColor = isReplaced ? '#39DFD1' : (isShadsyncVariable ? '#39DFD1' : '#ff6b35');
+        const borderColor = isReplaced ? '#41D7AF' : (isShadsyncVariable ? '#41D7AF' : '#ff6b35');
         const backgroundColor = isReplaced ? '#f0fffe' : '#f8f9fa';
-        const badgeColor = isReplaced ? '#39DFD1' : (isShadsyncVariable ? '#39DFD1' : '#ff6b35');
+        const badgeColor = isReplaced ? '#41D7AF' : (isShadsyncVariable ? '#41D7AF' : '#ff6b35');
         const textColor = isReplaced ? '#065f46' : '#333';
         
         // Use the cleaner suggestion-item layout
@@ -1185,8 +1205,8 @@
                   <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">
                     ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
                   </span>
-                  ${isReplaced ? '<span style="color: #39DFD1; font-size: 12px;">✅ Replaced</span>' : ''}
-                  ${isShadsyncVariable && !isReplaced ? '<span style="color: #39DFD1; font-size: 12px;">✅ Already ShadSync</span>' : ''}
+                  ${isReplaced ? '<span style="color: #41D7AF; font-size: 12px;">✅ Replaced</span>' : ''}
+                  ${isShadsyncVariable && !isReplaced ? '<span style="color: #41D7AF; font-size: 12px;">✅ Already ShadSync</span>' : ''}
                 </div>
               </div>
             </div>
@@ -1396,14 +1416,14 @@
       
       // Visual feedback: mark as applied
       if (button) {
-        button.style.background = '#39DFD1';
+        button.style.background = '#41D7AF';
         button.textContent = '✅ Applied';
         button.disabled = true;
       }
       
       // Update the card visual appearance
       if (container) {
-        container.style.borderLeftColor = '#39DFD1';
+        container.style.borderLeftColor = '#41D7AF';
         container.style.background = '#f0fffe';
         
         // Update text colors
@@ -1416,7 +1436,7 @@
         if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
           const successSpan = document.createElement('span');
           successSpan.className = 'success-indicator';
-          successSpan.style.cssText = 'color: #39DFD1; font-size: 12px; margin-left: 8px;';
+          successSpan.style.cssText = 'color: #41D7AF; font-size: 12px; margin-left: 8px;';
           successSpan.textContent = '✅ Applied';
           objectInfo.appendChild(successSpan);
         }
@@ -1658,7 +1678,7 @@
       // Visual feedback: mark as applying
       const button = document.getElementById(`replace-all-btn-${groupIndex}`);
       if (button) {
-        button.style.background = '#39DFD1';
+        button.style.background = '#41D7AF';
         button.textContent = '✅ Replaced';
         button.disabled = true;
       }
@@ -1671,7 +1691,7 @@
       // Update the card visual appearance
       const card = button.closest('.suggestion-item');
       if (card) {
-        card.style.borderLeftColor = '#39DFD1';
+        card.style.borderLeftColor = '#41D7AF';
         card.style.background = '#f0fffe';
         
         // Update text colors
@@ -1684,7 +1704,7 @@
         if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
           const successSpan = document.createElement('span');
           successSpan.className = 'success-indicator';
-          successSpan.style.cssText = 'color: #39DFD1; font-size: 12px; margin-left: 8px;';
+          successSpan.style.cssText = 'color: #41D7AF; font-size: 12px; margin-left: 8px;';
           successSpan.textContent = '✅ Replaced';
           objectInfo.appendChild(successSpan);
         }
