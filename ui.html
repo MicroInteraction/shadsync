@@ -13,11 +13,38 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 14px;
-      background: #ffffff;
+      background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
       color: #333333;
-      padding: 16px;
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ui-label {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      color: white;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+
+    .container {
+      padding: 60px 16px 16px 16px;
       height: 100vh;
       overflow-y: auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      margin: 0 auto;
     }
 
     .header {
@@ -25,40 +52,45 @@
     }
 
     .logo {
-      font-size: 18px;
-      font-weight: 600;
-      color: #ff6b35;
-      margin-bottom: 16px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #FF6C46;
+      margin-bottom: 24px;
+      letter-spacing: -0.5px;
     }
 
     .tabs {
       display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
+      gap: 0;
+      margin-bottom: 32px;
+      background: #F8F9FA;
+      border-radius: 12px;
+      padding: 4px;
     }
 
     .tab {
-      padding: 8px 16px;
+      flex: 1;
+      padding: 12px 16px;
       border: none;
-      background: #f5f5f5;
-      border-radius: 6px;
+      background: transparent;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
+      font-size: 15px;
+      font-weight: 600;
       transition: all 0.2s ease;
+      color: #6B7280;
+      text-align: center;
     }
 
     .tab.active {
       background: #333333;
       color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .tab:hover {
-      background: #e0e0e0;
-    }
-
-    .tab.active:hover {
-      background: #333333;
+    .tab:hover:not(.active) {
+      background: #E5E7EB;
+      color: #374151;
     }
 
     .section {
@@ -127,7 +159,7 @@
       width: 100%;
       padding: 12px 16px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
@@ -136,22 +168,49 @@
     }
 
     .button-primary {
-      background: #ff6b35;
+      background: #FF6C46;
       color: white;
     }
 
     .button-primary:hover {
-      background: #ff5722;
+      background: #E55A3A;
     }
 
     .button-secondary {
-      background: #f5f5f5;
-      color: #333333;
-      border: 1px solid #e0e0e0;
+      background: #F8F9FA;
+      color: #374151;
+      border: 1px solid #E5E7EB;
     }
 
     .button-secondary:hover {
-      background: #eeeeee;
+      background: #F3F4F6;
+      border-color: #D1D5DB;
+    }
+
+    .replace-btn {
+      background: #FF6C46;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .replace-btn:hover {
+      background: #E55A3A;
+    }
+
+    .replace-btn:disabled {
+      background: #D1D5DB;
+      cursor: not-allowed;
+    }
+
+    .button-secondary:hover {
+      background: #F3F4F6;
+      border-color: #D1D5DB;
     }
 
     .status {
@@ -552,16 +611,157 @@
       font-size: 12px;
       font-family: 'SF Mono', Monaco, monospace;
     }
+    
+    /* Modern Detect Interface Styles */
+    .scan-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .scan-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .scan-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .scan-btn {
+      background: #F8F9FA;
+      color: #374151;
+      border: 1px solid #E5E7EB;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .scan-btn:hover {
+      background: #F3F4F6;
+      border-color: #D1D5DB;
+    }
+
+    .replace-all-btn {
+      background: #FF6C46;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .replace-all-btn:hover {
+      background: #E55A3A;
+    }
+
+    /* Variable Group Styles */
+    .variable-section {
+      background: #F8F9FA;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .variable-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .variable-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1F2937;
+    }
+
+    .variable-count {
+      background: #E5E7EB;
+      color: #374151;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .variable-item {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #E5E7EB;
+    }
+
+    .variable-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .variable-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .variable-color-preview {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      margin-right: 12px;
+      border: 1px solid #E5E7EB;
+    }
+
+    .variable-name {
+      font-weight: 600;
+      color: #1F2937;
+      font-size: 14px;
+    }
+
+    .variable-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .variable-dropdown {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .variable-dropdown:focus {
+      outline: none;
+      border-color: #FF6C46;
+      box-shadow: 0 0 0 2px rgba(255, 108, 70, 0.1);
+    }
+
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo">shadsync</div>
-    <div class="tabs">
-      <button class="tab active" data-tab="update">Update Theme</button>
-      <button class="tab" data-tab="detect">Detect</button>
-    </div>
-  </div>
+  <div class="ui-label">shadsync ui</div>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="logo">shadsync</div>
+        <div class="tabs">
+          <button class="tab active" data-tab="update">Update Theme</button>
+          <button class="tab" data-tab="detect">Detect</button>
+        </div>
+      </div>
 
   <!-- Update Theme Tab -->
   <div id="update-tab" class="tab-content">
@@ -597,27 +797,15 @@
 
   <!-- Detect Tab -->
   <div id="detect-tab" class="tab-content hidden">
-    <div class="section">
-      <div class="section-title">Find & Replace Variables</div>
-      <p style="font-size: 12px; color: #666; margin-bottom: 16px;">
-        Detects objects using variables from other collections and suggests shadsync theme replacements.
-      </p>
-      <button class="button button-secondary" id="check-variables">
-        Scan for Non-ShadSync Variables
-      </button>
-      
-      <div id="variables-result" class="hidden">
-        <!-- General Replace All Button (for all variable replacements) -->
-        <div id="replace-all-container" class="hidden" style="margin-bottom: 16px; padding: 12px; background: #fff3f0; border-radius: 6px; border: 1px solid #ff6b35;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="flex: 1;">
-              <div style="font-weight: 600; color: #ff6b35; margin-bottom: 4px;">🚀 Bulk Action</div>
-              <div style="font-size: 11px; color: #666;">Replace all variables with their best shadsync theme suggestions</div>
-            </div>
-            <button id="replace-all-btn" class="replace-btn" style="background: #ff6b35; padding: 8px 16px; font-weight: 600;">
-              Replace All
-            </button>
-          </div>
+    <div class="scan-section">
+      <div class="scan-title">Detect</div>
+      <div class="scan-actions">
+        <button class="scan-btn" id="check-variables">Scan</button>
+        <button class="replace-all-btn" id="replace-all-btn" style="display: none;">Replace All</button>
+      </div>
+    </div>
+    
+    <div id="variables-result" class="hidden">
         </div>
         
         <!-- Non-ShadSync Variables Section -->
@@ -784,223 +972,103 @@
     function displayVariablesResult(data) {
       const resultDiv = document.getElementById('variables-result');
       
-      // Show/hide sections based on data
-      const nonShadSyncSection = document.getElementById('non-shadsync-section');
-      const allVariablesSection = document.getElementById('all-variables-section');
-      const unassignedSection = document.getElementById('unassigned-section');
-      const usageSummarySection = document.getElementById('usage-summary');
-      const allClearMessage = document.getElementById('all-clear-message');
-      
       // Priority 1: Non-ShadSync Variables (most important)
       if (data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0) {
         displayNonShadSyncVariables(data.nonShadSyncVariables);
-        nonShadSyncSection.classList.remove('hidden');
+        resultDiv.classList.remove('hidden');
       } else {
-        nonShadSyncSection.classList.add('hidden');
-      }
-      
-      // Priority 2: All Variable-Assigned Objects (for review and optimization)
-      if (data.allVariableAssigned && data.allVariableAssigned.length > 0) {
-        displayAllVariableAssigned(data.allVariableAssigned);
-        allVariablesSection.classList.remove('hidden');
-      } else {
-        allVariablesSection.classList.add('hidden');
-      }
-      
-      // Priority 3: Unassigned Objects (secondary)
-      if (data.unassignedObjects && data.unassignedObjects.length > 0) {
-        displayUnassignedObjects(data.unassignedObjects);
-        unassignedSection.classList.remove('hidden');
-      } else {
-        unassignedSection.classList.add('hidden');
-      }
-      
-      // Usage Summary (always show if we have shadsync variables being used)
-      if (data.variablesByCollection && data.variablesByCollection['shadsync theme']) {
-        displayUsageSummary(data.variablesByCollection, data.mainCollectionName);
-        usageSummarySection.classList.remove('hidden');
-      } else {
-        usageSummarySection.classList.add('hidden');
-      }
-      
-      // Handle Replace All container visibility
-      // Show if there are non-shadsync variables OR all-variables with suggestions
-      const replaceAllContainer = document.getElementById('replace-all-container');
-      const replaceAllBtn = document.getElementById('replace-all-btn');
-      const hasNonShadSync = data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0;
-      const hasAllVariablesWithSuggestions = data.allVariableAssigned && 
-        data.allVariableAssigned.some(group => group.suggestion && group.suggestion.id);
-      
-      if (hasNonShadSync || hasAllVariablesWithSuggestions) {
-        if (replaceAllContainer) {
-          replaceAllContainer.classList.remove('hidden');
-          
-          // Update button text and state
-          if (replaceAllBtn) {
-            const nonShadSyncWithSuggestions = (data.nonShadSyncVariables || []).filter(group => group.suggestion && group.suggestion.id).length;
-            const allVariablesWithSuggestions = (data.allVariableAssigned || []).filter(group => group.suggestion && group.suggestion.id).length;
-            const totalSuggestions = nonShadSyncWithSuggestions + allVariablesWithSuggestions;
-            
-            console.log('Replace All button state:', {
-              nonShadSyncWithSuggestions,
-              allVariablesWithSuggestions,
-              totalSuggestions,
-              hasNonShadSync,
-              hasAllVariablesWithSuggestions
-            });
-            
-            if (totalSuggestions > 0) {
-              replaceAllBtn.textContent = `Replace All (${totalSuggestions} variable${totalSuggestions !== 1 ? 's' : ''})`;
-              replaceAllBtn.disabled = false;
-              replaceAllBtn.style.opacity = '1';
-            } else {
-              replaceAllBtn.textContent = `Replace All (No suggestions available)`;
-              replaceAllBtn.disabled = true;
-              replaceAllBtn.style.opacity = '0.5';
-            }
-          }
-        }
-      } else {
-        if (replaceAllContainer) {
-          replaceAllContainer.classList.add('hidden');
-        }
-      }
-      
-      // Show "All Clear" message if no issues found
-      if ((!data.nonShadSyncVariables || data.nonShadSyncVariables.length === 0) && 
-          (!data.unassignedObjects || data.unassignedObjects.length === 0)) {
-        allClearMessage.classList.remove('hidden');
-      } else {
-        allClearMessage.classList.add('hidden');
+        resultDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #6B7280;">No variables found from other collections. All good! ✅</div>';
+        resultDiv.classList.remove('hidden');
       }
       
       // Set up Replace All button event listener
       setTimeout(() => {
         const replaceAllBtn = document.getElementById('replace-all-btn');
         if (replaceAllBtn) {
-          replaceAllBtn.removeEventListener('click', window.replaceAllVariables); // Remove previous listener
+          replaceAllBtn.removeEventListener('click', window.replaceAllVariables);
           replaceAllBtn.addEventListener('click', window.replaceAllVariables);
         }
       }, 100);
       
-      resultDiv.classList.remove('hidden');
       hideStatus();
     }
     
     // Display variables from non-shadsync collections (grouped by variable)
     function displayNonShadSyncVariables(nonShadSyncVariables) {
-      const listDiv = document.getElementById('non-shadsync-list');
+      const resultDiv = document.getElementById('variables-result');
       let html = '';
       
-      nonShadSyncVariables.forEach((variableGroup, groupIndex) => {
-        // Variable group header
+      if (nonShadSyncVariables.length > 0) {
         html += `
-          <div class="variable-group" style="border-left: 3px solid #ff6b35; margin-bottom: 16px; background: #fff;">
-            <div class="variable-group-header" style="background: #fff3f0; padding: 12px; border-radius: 6px 6px 0 0;">
-              <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 8px;">
-                <div>
-                  <span style="color: #ff6b35; font-weight: 600;">Variable:</span> 
-                  <strong>${variableGroup.currentVariable.name}</strong> 
-                  <span style="color: #666;">from "${variableGroup.currentVariable.collection}"</span>
-                </div>
-                <span style="background: #ff6b35; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">
-                  ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              
-              <!-- Replacement dropdown for the entire group -->
-              <div class="group-replacement" style="margin-top: 12px;">
-                <select class="select-dropdown" id="select-group-${groupIndex}" style="width: 100%; margin-bottom: 8px;">
-                  <option value="">🔄 Choose shadsync replacement for all objects...</option>
+          <div class="variable-section">
+            <div class="variable-section-header">
+              <div class="variable-section-title">Base</div>
+              <div class="variable-count">${nonShadSyncVariables.length} variable${nonShadSyncVariables.length !== 1 ? 's' : ''}</div>
+            </div>
         `;
         
-        // Add all shadsync variables to dropdown
-        if (variableGroup.allShadSyncVariables && variableGroup.allShadSyncVariables.length > 0) {
-          // First show smart suggestions if any
+        nonShadSyncVariables.forEach((variableGroup, groupIndex) => {
+          const hasColor = variableGroup.objects && variableGroup.objects[0] && variableGroup.objects[0].color;
+          const colorStyle = hasColor ? 
+            `background: rgb(${Math.round((variableGroup.objects[0].color.r || 0) * 255)}, ${Math.round((variableGroup.objects[0].color.g || 0) * 255)}, ${Math.round((variableGroup.objects[0].color.b || 0) * 255)})` : 
+            'background: #E5E7EB';
+          
+          html += `
+            <div class="variable-item">
+              <div class="variable-header">
+                <div class="variable-color-preview" style="${colorStyle}"></div>
+                <div class="variable-name">${variableGroup.currentVariable.name}</div>
+              </div>
+              <div class="variable-actions">
+                <select class="variable-dropdown" id="select-group-${groupIndex}">
+          `;
+          
+          // Add dropdown options
           if (variableGroup.allSuggestions && variableGroup.allSuggestions.length > 0) {
-            html += '<optgroup label="📍 Smart Suggestions">';
             variableGroup.allSuggestions.forEach(suggestion => {
               const selected = variableGroup.suggestion && suggestion.id === variableGroup.suggestion.id ? 'selected' : '';
-              const emoji = suggestion.score >= 80 ? '⭐' : suggestion.score >= 60 ? '✅' : '🔧';
-              html += `<option value="${suggestion.id}" ${selected}>${emoji} ${suggestion.name} (${suggestion.score}% match)</option>`;
+              html += `<option value="${suggestion.id}" ${selected}>${suggestion.name} (${suggestion.score}% match)</option>`;
             });
-            html += '</optgroup>';
+          } else {
+            html += '<option value="">No suggestions available</option>';
           }
           
-          // Then show all available variables
-          html += '<optgroup label="🎨 All ShadSync Variables">';
-          variableGroup.allShadSyncVariables.forEach(variable => {
-            const isInSuggestions = variableGroup.allSuggestions && 
-              variableGroup.allSuggestions.some(s => s.id === variable.id);
-            if (!isInSuggestions) {
-              html += `<option value="${variable.id}">${variable.name}</option>`;
-            }
-          });
-          html += '</optgroup>';
-        }
-        
-        html += `
+          html += `
                 </select>
-                <button class="replace-btn" id="replace-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-group-${groupIndex}"
-                        style="background: #ff6b35; width: 100%;">
+                <button class="replace-btn" id="replace-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-group-${groupIndex}">
                   Replace
                 </button>
               </div>
             </div>
-            
-            <!-- List of affected objects -->
-            <div class="affected-objects" style="padding: 12px; background: #fafafa;">
-              <div style="font-weight: 600; margin-bottom: 8px; color: #666;">Affected Objects:</div>
-        `;
-        
-        // Show each affected object
-        variableGroup.objects.forEach((obj, objIndex) => {
-          const hasColor = obj.color && (obj.color.r !== undefined || obj.color.g !== undefined || obj.color.b !== undefined);
-          const colorStyle = hasColor ? 
-            `background: rgb(${Math.round((obj.color.r || 0) * 255)}, ${Math.round((obj.color.g || 0) * 255)}, ${Math.round((obj.color.b || 0) * 255)})` : 
-            'background: #ccc';
-          
-          html += `
-            <div class="object-item" style="display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #eee;">
-              <div class="color-preview" style="${colorStyle}; width: 16px; height: 16px; border-radius: 3px; margin-right: 8px; border: 1px solid #ddd;"></div>
-              <span style="flex: 1;">${obj.node.name} (${obj.node.type})</span>
-              <span style="font-size: 12px; color: #666; text-transform: capitalize;">${obj.property}</span>
-            </div>
           `;
         });
         
-        html += `
-            </div>
-          </div>
-        `;
-      });
+        html += `</div>`;
+      }
       
-      listDiv.innerHTML = html;
+      resultDiv.innerHTML = html;
       
       // Store the grouped data for replacement functionality
       window.nonShadSyncGroups = nonShadSyncVariables;
       
+      // Show/hide the Replace All button
+      const replaceAllBtn = document.getElementById('replace-all-btn');
+      if (nonShadSyncVariables.length > 0) {
+        replaceAllBtn.style.display = 'block';
+      } else {
+        replaceAllBtn.style.display = 'none';
+      }
+      
       // Add event listeners to replace buttons
       setTimeout(() => {
-        // Add listener to general Replace All button
-        const replaceAllBtn = document.getElementById('replace-all-btn');
-        if (replaceAllBtn) {
-          replaceAllBtn.removeEventListener('click', window.replaceAllNonShadSync); // Remove previous listener
-          replaceAllBtn.addEventListener('click', window.replaceAllNonShadSync);
-        }
-        
         nonShadSyncVariables.forEach((variableGroup, index) => {
           const button = document.getElementById(`replace-btn-${index}`);
           if (button) {
-            console.log(`Adding event listener to button ${index}`);
             button.addEventListener('click', function() {
-              console.log(`Button ${index} clicked`);
               const buttonGroupIndex = parseInt(this.getAttribute('data-group-index'));
               const selectId = this.getAttribute('data-select-id');
               window.applyGroupReplacement(buttonGroupIndex, selectId);
             });
-          } else {
-            console.error(`Button not found: replace-btn-${index}`);
           }
         });
       }, 100);
@@ -1509,5 +1577,7 @@
       console.log('- updateSelectedVariable:', typeof updateSelectedVariable);
     });
   </script>
+    </div>
+  </div>
 </body>
 </html>
