@@ -11,7 +11,17 @@ figma.ui.onmessage = async (msg) => {
         await handleCssConversion(msg.css, msg.collectionName);
         break;
       case 'check-variables':
-        await checkUsedVariables();
+        console.log('Starting variable check...');
+        try {
+          await checkUsedVariables();
+          console.log('Variable check completed successfully');
+        } catch (error) {
+          console.error('Error in checkUsedVariables:', error);
+          figma.ui.postMessage({
+            type: 'error',
+            message: `Error during scan: ${error.message}`
+          });
+        }
         break;
       case 'get-collections':
         await getExistingCollections();
@@ -278,8 +288,12 @@ async function handleCssConversion(css, collectionName = 'shadsync theme') {
 
 // Check variables used in the current file and suggest replacements
 async function checkUsedVariables() {
+  console.log('checkUsedVariables function called');
+  
   const selection = figma.currentPage.selection;
   let nodesToAnalyze = [];
+  
+  console.log(`Selection length: ${selection.length}`);
   
   if (selection.length > 0) {      // If something is selected, analyze selected objects and their children
       for (const node of selection) {
@@ -614,6 +628,12 @@ async function checkUsedVariables() {
   // Convert grouped data to array format
   const groupedNonShadSyncArray = Object.values(groupedNonShadSync);
   const groupedAllVariablesArray = Object.values(groupedAllVariables);
+  
+  console.log('Sending results to UI:', {
+    nonShadSyncCount: groupedNonShadSyncArray.length,
+    allVariableCount: groupedAllVariablesArray.length,
+    unassignedCount: unassignedObjects.length
+  });
   
   figma.ui.postMessage({
     type: 'variables-check-result',

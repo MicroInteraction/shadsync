@@ -1018,6 +1018,7 @@
 
     // Check Variables
     document.getElementById('check-variables').addEventListener('click', () => {
+      console.log('Scan button clicked');
       showStatus('Scanning document for variables...', 'info');
       document.body.classList.add('loading');
       
@@ -1026,6 +1027,7 @@
           type: 'check-variables'
         }
       }, '*');
+      console.log('Message sent to plugin');
     });
 
     // Radius Preset Buttons
@@ -1049,6 +1051,7 @@
       const msg = event.data.pluginMessage;
       if (!msg) return;
       
+      console.log('Received message:', msg.type);
       document.body.classList.remove('loading');
       
       switch (msg.type) {
