@@ -1179,17 +1179,16 @@
         html += `
           <div class="suggestion-item" style="border-left: 4px solid ${borderColor}; background: ${backgroundColor};">
             <div class="suggestion-header">
-              <div class="object-info" style="color: ${textColor};">
+              <div class="object-info" style="color: ${textColor}; display: flex; justify-content: space-between; align-items: center;">
                 <strong>${variableGroup.currentVariable.name}</strong>
-                <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px; margin-left: 8px;">
-                  ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
-                </span>
-                ${isReplaced ? '<span style="color: #4caf50; font-size: 12px; margin-left: 8px;">✅ Replaced</span>' : ''}
-                ${isShadsyncVariable && !isReplaced ? '<span style="color: #4caf50; font-size: 12px; margin-left: 8px;">✅ Already ShadSync</span>' : ''}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">
+                    ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
+                  </span>
+                  ${isReplaced ? '<span style="color: #4caf50; font-size: 12px;">✅ Replaced</span>' : ''}
+                  ${isShadsyncVariable && !isReplaced ? '<span style="color: #4caf50; font-size: 12px;">✅ Already ShadSync</span>' : ''}
+                </div>
               </div>
-            </div>
-            <div class="current-variable" style="color: ${textColor};">
-              No variable assigned
             </div>
             
             <div class="suggestion-row">
