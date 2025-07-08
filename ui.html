@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ShadSync</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      background: #ffffff;
+      color: #333333;
+      padding: 16px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ff6b35;
+      margin-bottom: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .tab {
+      padding: 8px 16px;
+      border: none;
+      background: #f5f5f5;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .tab.active {
+      background: #333333;
+      color: white;
+    }
+
+    .tab:hover {
+      background: #e0e0e0;
+    }
+
+    .tab.active:hover {
+      background: #333333;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333333;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #666666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      resize: vertical;
+      background: #fafafa;
+    }
+
+    textarea::placeholder {
+      color: #999999;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.1);
+    }
+
+    select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #ff6b35;
+    }
+
+    .button {
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 8px;
+    }
+
+    .button-primary {
+      background: #ff6b35;
+      color: white;
+    }
+
+    .button-primary:hover {
+      background: #ff5722;
+    }
+
+    .button-secondary {
+      background: #f5f5f5;
+      color: #333333;
+      border: 1px solid #e0e0e0;
+    }
+
+    .button-secondary:hover {
+      background: #eeeeee;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .status.success {
+      background: #e8f5e8;
+      color: #2d5a2d;
+      border: 1px solid #c3e6c3;
+    }
+
+    .status.error {
+      background: #ffeaea;
+      color: #d32f2f;
+      border: 1px solid #ffcdd2;
+    }
+
+    .status.info {
+      background: #e3f2fd;
+      color: #1976d2;
+      border: 1px solid #bbdefb;
+    }
+
+    .variables-list {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    .variable-item {
+      padding: 8px 12px;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .variable-item:last-child {
+      border-bottom: none;
+    }
+
+    .collection-group {
+      margin-bottom: 16px;
+    }
+
+    .collection-title {
+      font-weight: 600;
+      color: #333333;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      margin: 0;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      font-size: 14px;
+      text-transform: none;
+      letter-spacing: normal;
+      color: #333333;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">shadsync</div>
+    <div class="tabs">
+      <button class="tab active" data-tab="update">Update Theme</button>
+      <button class="tab" data-tab="detect">Detect</button>
+    </div>
+  </div>
+
+  <!-- Update Theme Tab -->
+  <div id="update-tab" class="tab-content">
+    <div class="section">
+      <label for="css-input">Paste CSS</label>
+      <textarea 
+        id="css-input" 
+        placeholder=":root {
+  --background: #f9f9fa;
+  --foreground: #333333;
+  --card: #ffffff;
+  --card-foreground: #333333;
+  --popover: #ffffff;
+  --primary: 220 80% 60%;
+  --primary-foreground: #ffffff;
+}"
+      ></textarea>
+    </div>
+
+    <div class="input-group">
+      <label>Collection</label>
+      <div style="padding: 8px 12px; background: #f5f5f5; border-radius: 6px; color: #666; font-size: 14px;">
+        shadsync theme
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <button class="button button-primary" id="update-variables">
+      Update Variables
+    </button>
+  </div>
+
+  <!-- Detect Tab -->
+  <div id="detect-tab" class="tab-content hidden">
+    <div class="section">
+      <div class="section-title">Variables Used in Document</div>
+      <button class="button button-secondary" id="check-variables">
+        Scan Document
+      </button>
+      <div id="variables-result" class="hidden">
+        <div id="variables-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        
+        // Update active tab
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Show corresponding content
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.add('hidden');
+        });
+        document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+      });
+    });
+
+    // Status message functions
+    function showStatus(message, type = 'info') {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = `status ${type}`;
+      status.style.display = 'block';
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          status.style.display = 'none';
+        }, 5000);
+      }
+    }
+
+    function hideStatus() {
+      document.getElementById('status').style.display = 'none';
+    }
+
+    // Update Variables
+    document.getElementById('update-variables').addEventListener('click', () => {
+      const css = document.getElementById('css-input').value.trim();
+      
+      if (!css) {
+        showStatus('Please paste CSS variables first', 'error');
+        return;
+      }
+      
+      showStatus('Processing variables...', 'info');
+      document.body.classList.add('loading');
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'convert-css',
+          css: css,
+          collectionName: 'shadsync theme'
+        }
+      }, '*');
+    });
+
+    // Check Variables
+    document.getElementById('check-variables').addEventListener('click', () => {
+      showStatus('Scanning document for variables...', 'info');
+      document.body.classList.add('loading');
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'check-variables'
+        }
+      }, '*');
+    });
+
+    // Handle messages from plugin
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+      
+      document.body.classList.remove('loading');
+      
+      switch (msg.type) {
+        case 'success':
+          showStatus(msg.message, 'success');
+          break;
+          
+        case 'error':
+          showStatus(msg.message, 'error');
+          break;
+          
+        case 'status':
+          showStatus(msg.message, 'info');
+          break;
+          
+        case 'variables-check-result':
+          displayVariablesResult(msg.data);
+          break;
+      }
+    };
+
+    // Display variables check result
+    function displayVariablesResult(data) {
+      const resultDiv = document.getElementById('variables-result');
+      const listDiv = document.getElementById('variables-list');
+      
+      if (data.totalUsed === 0) {
+        listDiv.innerHTML = '<div class="variable-item">No variables found in the document</div>';
+      } else {
+        let html = '';
+        
+        Object.entries(data.variablesByCollection).forEach(([collectionName, variables]) => {
+          const isMainCollection = collectionName === data.mainCollectionName;
+          html += `
+            <div class="collection-group">
+              <div class="collection-title">
+                ${collectionName} ${isMainCollection ? '(Main)' : ''}
+                <span style="color: #666; font-weight: normal;">(${variables.length} variables)</span>
+              </div>
+              <div class="variables-list">
+          `;
+          
+          variables.forEach(variable => {
+            html += `
+              <div class="variable-item">
+                ${variable.name} <span style="color: #666;">(${variable.type})</span>
+              </div>
+            `;
+          });
+          
+          html += '</div></div>';
+        });
+        
+        listDiv.innerHTML = html;
+      }
+      
+      resultDiv.classList.remove('hidden');
+      hideStatus();
+    }
+
+  </script>
+</body>
+</html>

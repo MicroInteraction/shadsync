@@ -1,0 +1,22 @@
+# Ignore node_modules and build files
+node_modules/
+dist/
+build/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore backup files
+*.bak
+*~
+
+# Keep version backups but ignore temp files
+backups/temp/
+*.tmp

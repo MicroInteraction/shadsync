@@ -1,0 +1,31 @@
+{
+  "name": "ShadSync",
+  "version": "1.0.0",
+  "description": "Convert ShadCN-style CSS variables to Figma Variables with Light/Dark modes",
+  "author": "Your Name",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/shadsync-plugin.git"
+  },
+  "scripts": {
+    "backup": "./backup.sh",
+    "version-bump": "npm version patch && git push --tags"
+  },
+  "keywords": [
+    "figma",
+    "plugin",
+    "shadcn",
+    "css-variables",
+    "design-tokens",
+    "theme"
+  ],
+  "license": "MIT",
+  "figma": {
+    "id": "shadsync-variables",
+    "main": "code.js",
+    "ui": "ui.html"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "*"
+  }
+}
