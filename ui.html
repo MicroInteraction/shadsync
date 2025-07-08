@@ -833,6 +833,10 @@
     <button class="button button-primary" id="update-variables">
       Update Variables
     </button>
+    
+    <button class="button button-secondary" id="update-radius-tokens" style="margin-top: 12px;">
+      ✨ Update Radius Tokens
+    </button>
   </div>
 
   <!-- Detect Tab -->
@@ -991,6 +995,18 @@
       parent.postMessage({
         pluginMessage: {
           type: 'check-variables'
+        }
+      }, '*');
+    });
+
+    // Update Radius Tokens
+    document.getElementById('update-radius-tokens').addEventListener('click', () => {
+      showStatus('Updating radius tokens based on base value...', 'info');
+      document.body.classList.add('loading');
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'update-radius-tokens'
         }
       }, '*');
     });

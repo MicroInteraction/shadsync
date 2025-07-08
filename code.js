@@ -19,6 +19,9 @@ figma.ui.onmessage = async (msg) => {
       case 'replace-variable':
         await replaceVariable(msg.nodeId, msg.property, msg.newVariableId, msg.fillIndex, msg.strokeIndex);
         break;
+      case 'update-radius-tokens':
+        await updateRadiusTokensFromBase();
+        break;
       default:
         console.log('Unknown message type:', msg.type);
     }
@@ -829,6 +832,48 @@ function calculateColorDistance(color1, color2) {
 function findBestMatch(variableName, shadSyncVariables) {
   const suggestions = getSortedSuggestions(variableName, shadSyncVariables);
   return suggestions.length > 0 ? suggestions[0] : null;
+}
+
+// ✨ FEATURE: Dynamic Radius Variable Scaling
+// Use this to update all border-radius tokens based on a single variable called '--radius-base'.
+// It multiplies this base value (in rem) to update other radius tokens proportionally.
+// Assumes 1rem = 16px conversion.
+
+async function updateRadiusTokensFromBase() {
+  const remToPx = 16;
+  const baseVarName = '--radius-base';
+
+  const baseVar = figma.variables.getLocalVariables().find(v => v.name === baseVarName);
+  if (!baseVar) {
+    figma.notify('Base radius variable not found');
+    return;
+  }
+
+  // Adjust mode as needed (or loop through all modes)
+  const modeId = baseVar.modes[0].modeId;
+  const baseRem = parseFloat(baseVar.valuesByMode[modeId]);
+  const basePx = baseRem * remToPx;
+
+  // Define the scaling logic
+  const radiusMap = {
+    'sm': 0,
+    'default': 1,
+    'md': 1.5,
+    'lg': 2,
+    'xl': 3,
+    'xxl': 4,
+    'full': 9999 // not scaled
+  };
+
+  for (const [name, multiplier] of Object.entries(radiusMap)) {
+    const token = figma.variables.getLocalVariables().find(v => v.name === name);
+    if (!token) continue;
+
+    const value = multiplier === 9999 ? 9999 : multiplier * basePx;
+    token.setValueForMode(modeId, value);
+  }
+
+  figma.notify('All radius tokens updated based on base value');
 }
 
 // Initialize
