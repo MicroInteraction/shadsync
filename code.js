@@ -290,6 +290,30 @@ async function handleCssConversion(css, collectionName = 'shadsync theme') {
 async function checkUsedVariables() {
   console.log('checkUsedVariables function called');
   
+  // Test early return to see if basic communication works
+  figma.ui.postMessage({
+    type: 'variables-check-result', 
+    data: {
+      variablesByCollection: {},
+      mainCollectionName: 'shadsync theme',
+      totalUsed: 0,
+      nonShadSyncVariables: [],
+      allVariableAssigned: [],
+      unassignedObjects: [],
+      shadSyncVariables: [],
+      analyzedNodes: 0,
+      hasSelection: false,
+      scanSummary: {
+        nonShadSyncCount: 0,
+        allVariableCount: 0,
+        unassignedCount: 0,
+        shadSyncCount: 0
+      }
+    }
+  });
+  console.log('Early test response sent');
+  return;
+  
   const selection = figma.currentPage.selection;
   let nodesToAnalyze = [];
   
@@ -335,8 +359,6 @@ async function checkUsedVariables() {
   const variablesByCollection = {};
   const groupedNonShadSync = {}; // Group by variable name
   const groupedAllVariables = {}; // Group ALL variable-assigned objects for suggestions
-  
-  console.log(`Starting analysis of ${nodesToAnalyze.length} nodes`);
   
   // Analyze all nodes for color usage
   for (const node of nodesToAnalyze) {
