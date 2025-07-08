@@ -779,6 +779,21 @@
       box-shadow: 0 0 0 2px rgba(255, 108, 70, 0.1);
     }
 
+    .radius-preview {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 16px;
+      background: #F3F4F6;
+      border: 1px solid #D1D5DB;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 500;
+      color: #6B7280;
+      flex-shrink: 0;
+    }
+
   </style>
 </head>
 <body>
@@ -1164,15 +1179,24 @@
         `;
         
         nonShadSyncVariables.forEach((variableGroup, groupIndex) => {
-          const hasColor = variableGroup.objects && variableGroup.objects[0] && variableGroup.objects[0].color;
-          const colorStyle = hasColor ? 
-            `background: rgb(${Math.round((variableGroup.objects[0].color.r || 0) * 255)}, ${Math.round((variableGroup.objects[0].color.g || 0) * 255)}, ${Math.round((variableGroup.objects[0].color.b || 0) * 255)})` : 
-            'background: #E5E7EB';
+          // Handle different property types for preview
+          let previewElement = '';
+          if (variableGroup.property === 'cornerRadius') {
+            const radiusValue = variableGroup.objects && variableGroup.objects[0] && variableGroup.objects[0].value;
+            previewElement = `<div class="radius-preview">${radiusValue || 0}px</div>`;
+          } else {
+            // Color properties (fill/stroke)
+            const hasColor = variableGroup.objects && variableGroup.objects[0] && variableGroup.objects[0].color;
+            const colorStyle = hasColor ? 
+              `background: rgb(${Math.round((variableGroup.objects[0].color.r || 0) * 255)}, ${Math.round((variableGroup.objects[0].color.g || 0) * 255)}, ${Math.round((variableGroup.objects[0].color.b || 0) * 255)})` : 
+              'background: #E5E7EB';
+            previewElement = `<div class="variable-color-preview" style="${colorStyle}"></div>`;
+          }
           
           html += `
             <div class="variable-item">
               <div class="variable-header">
-                <div class="variable-color-preview" style="${colorStyle}"></div>
+                ${previewElement}
                 <div class="variable-name">${variableGroup.currentVariable.name}</div>
               </div>
               <div class="variable-actions">
@@ -1260,6 +1284,10 @@
             </div>
             
             <div class="suggestion-row">
+              ${variableGroup.property === 'cornerRadius' ? 
+                `<div class="radius-preview">${variableGroup.objects && variableGroup.objects[0] && variableGroup.objects[0].value ? variableGroup.objects[0].value : 0}px</div>` :
+                ''
+              }
               <select class="select-dropdown" id="select-all-group-${groupIndex}" onchange="updateAllVariableSelectedVariable('${variableGroup.currentVariable.name}', this.value, ${groupIndex})" ${isReplaced ? 'disabled' : ''}>
                 <option value="">${isShadsyncVariable ? 'Switch to different shadsync variable...' : 'Choose shadsync replacement...'}</option>
         `;
@@ -1333,10 +1361,19 @@
       let html = '';
       
       unassignedObjects.forEach((item, index) => {
-        const hasColor = item.color && (item.color.r !== undefined || item.color.g !== undefined || item.color.b !== undefined);
-        const colorStyle = hasColor ? 
-          `background: rgb(${Math.round((item.color.r || 0) * 255)}, ${Math.round((item.color.g || 0) * 255)}, ${Math.round((item.color.b || 0) * 255)})` : 
-          'background: #ccc';
+        let previewElement = '';
+        
+        if (item.property === 'cornerRadius') {
+          // Show radius value for corner radius properties
+          previewElement = `<div class="radius-preview">${item.value}px</div>`;
+        } else {
+          // Show color preview for fill/stroke properties
+          const hasColor = item.color && (item.color.r !== undefined || item.color.g !== undefined || item.color.b !== undefined);
+          const colorStyle = hasColor ? 
+            `background: rgb(${Math.round((item.color.r || 0) * 255)}, ${Math.round((item.color.g || 0) * 255)}, ${Math.round((item.color.b || 0) * 255)})` : 
+            'background: #ccc';
+          previewElement = `<div class="color-preview" style="${colorStyle}"></div>`;
+        }
         
         html += `
           <div class="suggestion-item">

@@ -512,7 +512,106 @@ async function checkUsedVariables() {
         }
       }
     }
+    
+    // Check corner radius
+    if ('cornerRadius' in node && typeof node.cornerRadius === 'number') {
+      // Check if corner radius has a bound variable
+      if (node.boundVariables && node.boundVariables.cornerRadius) {
+        const variable = figma.variables.getVariableById(node.boundVariables.cornerRadius.id);
+        if (variable) {
+          const collection = collections.find(c => c.id === variable.variableCollectionId);
+          
+          // Group ALL variable-assigned objects for suggestion (regardless of collection)
+          const allVariablesKey = `${variable.name}_${collection ? collection.name : 'unknown'}`;
+          const suggestions = getSortedSuggestions(variable.name, shadSyncVariables);
+          
+          if (!groupedAllVariables[allVariablesKey]) {
+            groupedAllVariables[allVariablesKey] = {
+              currentVariable: {
+                id: variable.id,
+                name: variable.name,
+                collection: collection ? collection.name : 'unknown'
+              },
+              suggestion: suggestions.length > 0 ? suggestions[0] : null,
+              allSuggestions: suggestions,
+              allShadSyncVariables: shadSyncVariables,
+              objects: [],
+              property: 'cornerRadius'
+            };
+          }
+          
+          groupedAllVariables[allVariablesKey].objects.push({
+            node: nodeInfo,
+            property: 'cornerRadius',
+            value: node.cornerRadius
+          });
+
+          if (collection && collection.name !== 'shadsync theme') {
+            // Variable from different collection - suggest replacement
+            const radiusVariables = shadSyncVariables.filter(v => 
+              v.name.includes('radius') && v.type === 'FLOAT'
+            );
+            const suggestion = findBestMatch(variable.name, radiusVariables);
+            const radiusSuggestions = getRadiusSuggestionsForVariable(variable.name, radiusVariables);
+            const variableKey = `${variable.name}_${collection.name}`;
+            
+            if (!groupedNonShadSync[variableKey]) {
+              groupedNonShadSync[variableKey] = {
+                currentVariable: {
+                  id: variable.id,
+                  name: variable.name,
+                  collection: collection.name
+                },
+                suggestion: radiusSuggestions.length > 0 ? radiusSuggestions[0] : suggestion,
+                allSuggestions: radiusSuggestions,
+                allShadSyncVariables: shadSyncVariables,
+                objects: [],
+                property: 'cornerRadius'
+              };
+            }
+            
+            groupedNonShadSync[variableKey].objects.push({
+              node: nodeInfo,
+              property: 'cornerRadius',
+              value: node.cornerRadius
+            });
+          }
+          
+          // Track for collection grouping
+          if (collection) {
+            if (!variablesByCollection[collection.name]) {
+              variablesByCollection[collection.name] = [];
+            }
+            if (!variablesByCollection[collection.name].find(v => v.id === variable.id)) {
+              variablesByCollection[collection.name].push({
+                id: variable.id,
+                name: variable.name,
+                type: variable.resolvedType
+              });
+            }
+          }
+        }
+      } else if (node.cornerRadius > 0) {
+        // No variable assigned but has radius value - suggest radius variable
+        const radiusVariables = shadSyncVariables.filter(v => 
+          v.name.includes('radius') && v.type === 'FLOAT'
+        );
+        
+        // Use improved radius matching
+        const radiusSuggestions = getRadiusSuggestions(node.cornerRadius, radiusVariables);
+        const bestSuggestion = radiusSuggestions.length > 0 ? radiusSuggestions[0] : null;
+        
+        unassignedObjects.push({
+          node: nodeInfo,
+          property: 'cornerRadius',
+          value: node.cornerRadius,
+          suggestion: bestSuggestion,
+          allSuggestions: radiusSuggestions
+        });
+      }
+    }
   }
+  
   
   // Convert grouped data to array format
   const groupedNonShadSyncArray = Object.values(groupedNonShadSync);
@@ -612,6 +711,11 @@ async function replaceVariable(nodeId, property, newVariableId, fillIndex = 0, s
       } else {
         console.error('Invalid stroke index or stroke type:', targetIndex, strokes[targetIndex]);
       }
+    } else if (property === 'cornerRadius' && 'cornerRadius' in node) {
+      console.log('Processing corner radius replacement');
+      // Set corner radius variable
+      node.setBoundVariable('cornerRadius', variable);
+      console.log('Corner radius replaced successfully');
     } else {
       console.error('Invalid property or node type:', property, node.type);
     }
@@ -845,6 +949,150 @@ function calculateColorDistance(color1, color2) {
   const gDiff = (color1.g || 0) - (color2.g || 0);
   const bDiff = (color1.b || 0) - (color2.b || 0);
   return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
+}
+
+// Get radius variable suggestions based on corner radius value
+function getRadiusSuggestions(cornerRadiusValue, radiusVariables) {
+  const suggestions = [];
+  
+  // Define common radius value mappings (in px)
+  const radiusMap = {
+    0: ['radius-0', 'radius-none'],
+    2: ['radius-sm', 'radius-xs'],
+    4: ['radius', 'radius-md', 'radius-default'],
+    6: ['radius-md', 'radius'],
+    8: ['radius-lg', 'radius-l'],
+    12: ['radius-xl', 'radius-lg'],
+    16: ['radius-2xl', 'radius-xl'],
+    24: ['radius-3xl', 'radius-2xl'],
+    32: ['radius-4xl', 'radius-3xl'],
+    40: ['radius-5xl', 'radius-4xl'],
+    48: ['radius-6xl', 'radius-5xl']
+  };
+  
+  // Try exact value match first
+  for (const variable of radiusVariables) {
+    let score = 0;
+    let matchType = '';
+    
+    // Check for exact value matches in common patterns
+    const expectedNames = radiusMap[cornerRadiusValue] || [];
+    if (expectedNames.some(name => variable.name.toLowerCase().includes(name))) {
+      score = 95;
+      matchType = 'exact-value';
+    }
+    // Check for closest value matches
+    else if (cornerRadiusValue === 0 && variable.name.includes('0')) {
+      score = 90;
+      matchType = 'zero-match';
+    }
+    else if (cornerRadiusValue <= 4 && (variable.name === 'radius' || variable.name.includes('sm') || variable.name.includes('default'))) {
+      score = 85;
+      matchType = 'small-radius';
+    }
+    else if (cornerRadiusValue > 4 && cornerRadiusValue <= 8 && (variable.name.includes('md') || variable.name === 'radius')) {
+      score = 80;
+      matchType = 'medium-radius';
+    }
+    else if (cornerRadiusValue > 8 && cornerRadiusValue <= 16 && variable.name.includes('lg')) {
+      score = 75;
+      matchType = 'large-radius';
+    }
+    else if (cornerRadiusValue > 16 && variable.name.includes('xl')) {
+      score = 70;
+      matchType = 'extra-large-radius';
+    }
+    // Default radius fallback
+    else if (variable.name === 'radius') {
+      score = 60;
+      matchType = 'default-fallback';
+    }
+    // Any radius variable as last resort
+    else if (variable.name.includes('radius')) {
+      score = 40;
+      matchType = 'radius-fallback';
+    }
+    
+    if (score > 0) {
+      suggestions.push({
+        id: variable.id,
+        name: variable.name,
+        type: variable.type,
+        score: score,
+        matchType: matchType
+      });
+    }
+  }
+  
+  return suggestions.sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+// Get radius variable suggestions based on variable name
+function getRadiusSuggestionsForVariable(variableName, radiusVariables) {
+  const suggestions = [];
+  const cleanName = variableName.toLowerCase().replace(/[-_]/g, '');
+  
+  for (const variable of radiusVariables) {
+    const varCleanName = variable.name.toLowerCase().replace(/[-_]/g, '');
+    let score = 0;
+    let matchType = '';
+    
+    // Exact match
+    if (cleanName === varCleanName) {
+      score = 100;
+      matchType = 'exact';
+    }
+    // Contains match
+    else if (varCleanName.includes(cleanName) || cleanName.includes(varCleanName)) {
+      score = 85;
+      matchType = 'contains';
+    }
+    // Radius-specific pattern matching
+    else if (cleanName.includes('radius') && varCleanName.includes('radius')) {
+      // Extract size indicators
+      const sizeMap = {
+        'sm': ['small', 'xs', 'sm'],
+        'md': ['medium', 'md', 'default'],
+        'lg': ['large', 'lg', 'l'],
+        'xl': ['extra', 'xl', 'x'],
+        '2xl': ['2xl', 'xxl'],
+        '3xl': ['3xl', 'xxxl'],
+        'none': ['none', '0'],
+        'full': ['full', 'max']
+      };
+      
+      for (const [key, variants] of Object.entries(sizeMap)) {
+        if (variants.some(v => cleanName.includes(v)) && varCleanName.includes(key)) {
+          score = 80;
+          matchType = 'size-match';
+          break;
+        }
+      }
+      
+      // If no size match but both have radius
+      if (score === 0) {
+        score = 60;
+        matchType = 'radius-generic';
+      }
+    }
+    // Default radius fallback
+    else if (variable.name === 'radius') {
+      score = 50;
+      matchType = 'default-fallback';
+    }
+    
+    if (score > 0) {
+      suggestions.push({
+        id: variable.id,
+        name: variable.name,
+        type: variable.type,
+        score: score,
+        matchType: matchType
+      });
+    }
+  }
+  
+  return suggestions.sort((a, b) => b.score - a.score).slice(0, 5);
 }
 
 // Legacy function for backward compatibility
