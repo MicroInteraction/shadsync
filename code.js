@@ -336,6 +336,8 @@ async function checkUsedVariables() {
   const groupedNonShadSync = {}; // Group by variable name
   const groupedAllVariables = {}; // Group ALL variable-assigned objects for suggestions
   
+  console.log(`Starting analysis of ${nodesToAnalyze.length} nodes`);
+  
   // Analyze all nodes for color usage
   for (const node of nodesToAnalyze) {
     // Skip certain node types that don't have color properties
