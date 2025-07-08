@@ -250,9 +250,25 @@ async function handleCssConversion(css, collectionName = 'shadsync theme') {
   if (Object.keys(light).length > 0) modesCreated.push('Light');
   if (Object.keys(dark).length > 0) modesCreated.push('Dark');
   
+  // 🎯 Auto-update radius tokens if --radius variable is found
+  let radiusUpdated = false;
+  if (light.radius || dark.radius) {
+    try {
+      await updateRadiusTokensFromCSS(light.radius || dark.radius);
+      radiusUpdated = true;
+    } catch (error) {
+      console.warn('Failed to auto-update radius tokens:', error);
+    }
+  }
+  
+  let successMessage = `Variables processed: ${createdCount} created, ${updatedCount} updated (${modesCreated.join(' + ')} modes)`;
+  if (radiusUpdated) {
+    successMessage += ' + Radius tokens auto-updated';
+  }
+  
   figma.ui.postMessage({
     type: 'success',
-    message: `Variables processed: ${createdCount} created, ${updatedCount} updated (${modesCreated.join(' + ')} modes)`,
+    message: successMessage,
     data: { collectionName: targetCollectionName, createdCount, updatedCount, modes: modesCreated }
   });
 }
@@ -874,6 +890,68 @@ async function updateRadiusTokensFromBase() {
   }
 
   figma.notify('All radius tokens updated based on base value');
+}
+
+// ✨ FEATURE: Auto-update radius tokens from CSS --radius value
+// Called automatically when CSS conversion detects a --radius variable
+async function updateRadiusTokensFromCSS(radiusValue) {
+  const remToPx = 16;
+  
+  // Parse radius value (supports rem and px)
+  let basePx;
+  if (radiusValue.includes('rem')) {
+    const baseRem = parseFloat(radiusValue.replace('rem', ''));
+    basePx = baseRem * remToPx;
+  } else if (radiusValue.includes('px')) {
+    basePx = parseFloat(radiusValue.replace('px', ''));
+  } else {
+    // Assume it's a number in pixels
+    basePx = parseFloat(radiusValue);
+  }
+  
+  if (isNaN(basePx)) {
+    throw new Error(`Invalid radius value: ${radiusValue}`);
+  }
+
+  // Find the shadsync collection
+  const collection = figma.variables.getLocalVariableCollections()
+    .find(c => c.name === 'shadsync theme');
+  
+  if (!collection) {
+    throw new Error('shadsync theme collection not found');
+  }
+
+  // Get the first mode (usually Light mode)
+  const modeId = collection.modes[0].modeId;
+
+  // Define the scaling logic for radius tokens
+  const radiusMap = {
+    'radius-sm': 0.25,    // 4px when base is 16px
+    'radius': 1,          // base value
+    'radius-md': 1.5,     // 1.5x base
+    'radius-lg': 2,       // 2x base  
+    'radius-xl': 3,       // 3x base
+    'radius-2xl': 4,      // 4x base
+    'radius-full': 9999   // not scaled - always 9999px
+  };
+
+  let updatedCount = 0;
+  for (const [tokenName, multiplier] of Object.entries(radiusMap)) {
+    // Look for existing radius tokens in the collection
+    const token = figma.variables.getLocalVariables().find(v => 
+      v.name === tokenName && v.variableCollectionId === collection.id
+    );
+    
+    if (token) {
+      const value = multiplier === 9999 ? 9999 : Math.round(multiplier * basePx);
+      token.setValueForMode(modeId, value);
+      updatedCount++;
+    }
+  }
+  
+  if (updatedCount > 0) {
+    console.log(`Updated ${updatedCount} radius tokens based on --radius: ${radiusValue}`);
+  }
 }
 
 // Initialize
