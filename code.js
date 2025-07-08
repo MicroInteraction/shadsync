@@ -548,11 +548,7 @@ async function checkUsedVariables() {
 
           if (collection && collection.name !== 'shadsync theme') {
             // Variable from different collection - suggest replacement
-            const radiusVariables = shadSyncVariables.filter(v => 
-              v.name.includes('radius') && v.type === 'FLOAT'
-            );
-            const suggestion = findBestMatch(variable.name, radiusVariables);
-            const radiusSuggestions = getRadiusSuggestionsForVariable(variable.name, radiusVariables);
+            const suggestion = findBestMatch(variable.name, shadSyncVariables);
             const variableKey = `${variable.name}_${collection.name}`;
             
             if (!groupedNonShadSync[variableKey]) {
@@ -562,8 +558,8 @@ async function checkUsedVariables() {
                   name: variable.name,
                   collection: collection.name
                 },
-                suggestion: radiusSuggestions.length > 0 ? radiusSuggestions[0] : suggestion,
-                allSuggestions: radiusSuggestions,
+                suggestion: suggestion,
+                allSuggestions: getSortedSuggestions(variable.name, shadSyncVariables),
                 allShadSyncVariables: shadSyncVariables,
                 objects: [],
                 property: 'cornerRadius'
@@ -597,16 +593,18 @@ async function checkUsedVariables() {
           v.name.includes('radius') && v.type === 'FLOAT'
         );
         
-        // Use improved radius matching
-        const radiusSuggestions = getRadiusSuggestions(node.cornerRadius, radiusVariables);
-        const bestSuggestion = radiusSuggestions.length > 0 ? radiusSuggestions[0] : null;
+        let bestSuggestion = null;
+        if (radiusVariables.length > 0) {
+          // Simple suggestion logic - prefer 'radius' variable or first available
+          bestSuggestion = radiusVariables.find(v => v.name === 'radius') || radiusVariables[0];
+        }
         
         unassignedObjects.push({
           node: nodeInfo,
           property: 'cornerRadius',
           value: node.cornerRadius,
           suggestion: bestSuggestion,
-          allSuggestions: radiusSuggestions
+          allSuggestions: radiusVariables
         });
       }
     }
