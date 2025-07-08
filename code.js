@@ -16,6 +16,9 @@ figma.ui.onmessage = async (msg) => {
       case 'get-collections':
         await getExistingCollections();
         break;
+      case 'replace-variable':
+        await replaceVariable(msg.nodeId, msg.property, msg.newVariableId);
+        break;
       default:
         console.log('Unknown message type:', msg.type);
     }
@@ -247,54 +250,132 @@ async function handleCssConversion(css, collectionName = 'shadsync theme') {
   });
 }
 
-// Check variables used in the current file
+// Check variables used in the current file and suggest replacements
 async function checkUsedVariables() {
   const allNodes = figma.currentPage.findAll();
-  const usedVariables = new Set();
   const collections = figma.variables.getLocalVariableCollections();
+  const shadSyncCollection = collections.find(c => c.name === 'shadsync theme');
   
-  // Find all variable usage
+  if (!shadSyncCollection) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'No "shadsync theme" collection found. Please create variables first.'
+    });
+    return;
+  }
+  
+  // Get all shadsync variables for suggestions
+  const shadSyncVariables = figma.variables.getLocalVariables()
+    .filter(v => v.variableCollectionId === shadSyncCollection.id)
+    .map(v => ({
+      id: v.id,
+      name: v.name,
+      type: v.resolvedType
+    }));
+  
+  const nonShadSyncVariables = [];
+  const unassignedObjects = [];
+  const variablesByCollection = {};
+  
+  // Analyze all nodes for color usage
   for (const node of allNodes) {
-    if ('fills' in node && node.fills) {
+    const nodeInfo = {
+      id: node.id,
+      name: node.name,
+      type: node.type
+    };
+    
+    // Check fills
+    if ('fills' in node && node.fills && Array.isArray(node.fills)) {
       for (const fill of node.fills) {
-        if (fill.type === 'SOLID' && fill.boundVariables && fill.boundVariables.color) {
-          const variable = figma.variables.getVariableById(fill.boundVariables.color.id);
-          if (variable) {
-            usedVariables.add(variable.id);
+        if (fill.type === 'SOLID') {
+          if (fill.boundVariables && fill.boundVariables.color) {
+            // Has variable assigned
+            const variable = figma.variables.getVariableById(fill.boundVariables.color.id);
+            if (variable) {
+              const collection = collections.find(c => c.id === variable.variableCollectionId);
+              
+              if (collection && collection.name !== 'shadsync theme') {
+                // Variable from different collection - suggest replacement
+                const suggestion = findBestMatch(variable.name, shadSyncVariables);
+                nonShadSyncVariables.push({
+                  node: nodeInfo,
+                  property: 'fill',
+                  currentVariable: {
+                    id: variable.id,
+                    name: variable.name,
+                    collection: collection.name
+                  },
+                  suggestion: suggestion,
+                  color: fill.color
+                });
+              }
+              
+              // Track for collection grouping
+              if (collection) {
+                if (!variablesByCollection[collection.name]) {
+                  variablesByCollection[collection.name] = [];
+                }
+                if (!variablesByCollection[collection.name].find(v => v.id === variable.id)) {
+                  variablesByCollection[collection.name].push({
+                    id: variable.id,
+                    name: variable.name,
+                    type: variable.resolvedType
+                  });
+                }
+              }
+            }
+          } else if (fill.color) {
+            // No variable assigned - suggest one
+            const suggestion = findBestColorMatch(fill.color, shadSyncVariables, shadSyncCollection);
+            unassignedObjects.push({
+              node: nodeInfo,
+              property: 'fill',
+              color: fill.color,
+              suggestion: suggestion
+            });
           }
         }
       }
     }
     
-    if ('strokes' in node && node.strokes) {
+    // Check strokes
+    if ('strokes' in node && node.strokes && Array.isArray(node.strokes)) {
       for (const stroke of node.strokes) {
-        if (stroke.type === 'SOLID' && stroke.boundVariables && stroke.boundVariables.color) {
-          const variable = figma.variables.getVariableById(stroke.boundVariables.color.id);
-          if (variable) {
-            usedVariables.add(variable.id);
+        if (stroke.type === 'SOLID') {
+          if (stroke.boundVariables && stroke.boundVariables.color) {
+            // Has variable assigned
+            const variable = figma.variables.getVariableById(stroke.boundVariables.color.id);
+            if (variable) {
+              const collection = collections.find(c => c.id === variable.variableCollectionId);
+              
+              if (collection && collection.name !== 'shadsync theme') {
+                // Variable from different collection - suggest replacement
+                const suggestion = findBestMatch(variable.name, shadSyncVariables);
+                nonShadSyncVariables.push({
+                  node: nodeInfo,
+                  property: 'stroke',
+                  currentVariable: {
+                    id: variable.id,
+                    name: variable.name,
+                    collection: collection.name
+                  },
+                  suggestion: suggestion,
+                  color: stroke.color
+                });
+              }
+            }
+          } else if (stroke.color) {
+            // No variable assigned - suggest one
+            const suggestion = findBestColorMatch(stroke.color, shadSyncVariables, shadSyncCollection);
+            unassignedObjects.push({
+              node: nodeInfo,
+              property: 'stroke',
+              color: stroke.color,
+              suggestion: suggestion
+            });
           }
         }
-      }
-    }
-  }
-  
-  // Group variables by collection
-  const variablesByCollection = {};
-  const mainCollection = collections.find(c => c.name.includes('ShadCN') || c.name.includes('Theme'));
-  
-  for (const variableId of usedVariables) {
-    const variable = figma.variables.getVariableById(variableId);
-    if (variable) {
-      const collection = collections.find(c => c.id === variable.variableCollectionId);
-      if (collection) {
-        if (!variablesByCollection[collection.name]) {
-          variablesByCollection[collection.name] = [];
-        }
-        variablesByCollection[collection.name].push({
-          id: variable.id,
-          name: variable.name,
-          type: variable.resolvedType
-        });
       }
     }
   }
@@ -303,8 +384,11 @@ async function checkUsedVariables() {
     type: 'variables-check-result',
     data: {
       variablesByCollection,
-      mainCollectionName: mainCollection ? mainCollection.name : undefined,
-      totalUsed: usedVariables.size
+      mainCollectionName: 'shadsync theme',
+      totalUsed: Object.values(variablesByCollection).reduce((sum, vars) => sum + vars.length, 0),
+      nonShadSyncVariables,
+      unassignedObjects,
+      shadSyncVariables
     }
   });
 }
@@ -324,11 +408,155 @@ async function getExistingCollections() {
   });
 }
 
-// Calculate color distance for suggestions (future enhancement)
+// Handle variable replacement
+async function replaceVariable(nodeId, property, newVariableId) {
+  const node = figma.getNodeById(nodeId);
+  if (!node) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'Node not found'
+    });
+    return;
+  }
+  
+  const variable = figma.variables.getVariableById(newVariableId);
+  if (!variable) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: 'Variable not found'
+    });
+    return;
+  }
+  
+  try {
+    if (property === 'fill' && 'fills' in node && node.fills) {
+      // Clone fills array and update the first solid fill
+      const fills = [...node.fills];
+      const fillIndex = fills.findIndex(f => f.type === 'SOLID');
+      
+      if (fillIndex !== -1) {
+        fills[fillIndex] = {
+          ...fills[fillIndex],
+          boundVariables: { color: { type: 'VARIABLE', id: newVariableId } }
+        };
+        node.fills = fills;
+      }
+    } else if (property === 'stroke' && 'strokes' in node && node.strokes) {
+      // Clone strokes array and update the first solid stroke
+      const strokes = [...node.strokes];
+      const strokeIndex = strokes.findIndex(s => s.type === 'SOLID');
+      
+      if (strokeIndex !== -1) {
+        strokes[strokeIndex] = {
+          ...strokes[strokeIndex],
+          boundVariables: { color: { type: 'VARIABLE', id: newVariableId } }
+        };
+        node.strokes = strokes;
+      }
+    }
+    
+    figma.ui.postMessage({
+      type: 'success',
+      message: `Applied ${variable.name} to ${node.name}`
+    });
+    
+    // Refresh the analysis
+    await checkUsedVariables();
+    
+  } catch (error) {
+    figma.ui.postMessage({
+      type: 'error',
+      message: `Failed to apply variable: ${error.message}`
+    });
+  }
+}
+
+// Smart variable name matching
+function findBestMatch(variableName, shadSyncVariables) {
+  const cleanName = variableName.toLowerCase()
+    .replace(/^--/, '') // Remove CSS prefix
+    .replace(/[-_]/g, '') // Remove separators
+    .replace(/color$/, '') // Remove "color" suffix
+    .replace(/bg$/, 'background') // Convert bg to background
+    .replace(/fg$/, 'foreground') // Convert fg to foreground
+    .trim();
+  
+  // Exact match first
+  let exactMatch = shadSyncVariables.find(v => 
+    v.name.toLowerCase().replace(/[-_]/g, '') === cleanName
+  );
+  if (exactMatch) return exactMatch;
+  
+  // Fuzzy matching with common patterns
+  const patterns = [
+    // Direct mappings
+    { pattern: /background/i, suggestions: ['background', 'card', 'popover'] },
+    { pattern: /foreground/i, suggestions: ['foreground', 'card-foreground', 'popover-foreground'] },
+    { pattern: /primary/i, suggestions: ['primary', 'primary-foreground'] },
+    { pattern: /secondary/i, suggestions: ['secondary', 'secondary-foreground'] },
+    { pattern: /border/i, suggestions: ['border', 'input'] },
+    { pattern: /text/i, suggestions: ['foreground', 'muted-foreground'] },
+    { pattern: /accent/i, suggestions: ['accent', 'accent-foreground'] },
+    { pattern: /muted/i, suggestions: ['muted', 'muted-foreground'] },
+    { pattern: /destructive/i, suggestions: ['destructive', 'destructive-foreground'] },
+    { pattern: /ring/i, suggestions: ['ring'] },
+    { pattern: /input/i, suggestions: ['input', 'border'] }
+  ];
+  
+  for (const { pattern, suggestions } of patterns) {
+    if (pattern.test(cleanName)) {
+      for (const suggestion of suggestions) {
+        const match = shadSyncVariables.find(v => 
+          v.name.toLowerCase() === suggestion.toLowerCase()
+        );
+        if (match) return match;
+      }
+    }
+  }
+  
+  // Partial matching
+  const partialMatch = shadSyncVariables.find(v =>
+    v.name.toLowerCase().includes(cleanName) || 
+    cleanName.includes(v.name.toLowerCase())
+  );
+  
+  return partialMatch || null;
+}
+
+// Find best color match based on color similarity
+function findBestColorMatch(color, shadSyncVariables, collection) {
+  if (!color || !shadSyncVariables.length) return null;
+  
+  let bestMatch = null;
+  let smallestDistance = Infinity;
+  
+  // Get current mode (default to first mode)
+  const currentMode = collection.modes[0];
+  if (!currentMode) return null;
+  
+  for (const variable of shadSyncVariables.filter(v => v.type === 'COLOR')) {
+    const figmaVariable = figma.variables.getVariableById(variable.id);
+    if (!figmaVariable) continue;
+    
+    const variableColor = figmaVariable.valuesByMode[currentMode.modeId];
+    if (!variableColor || typeof variableColor !== 'object') continue;
+    
+    const distance = calculateColorDistance(color, variableColor);
+    if (distance < smallestDistance) {
+      smallestDistance = distance;
+      bestMatch = variable;
+    }
+  }
+  
+  // Only suggest if color is reasonably close (threshold of 0.3)
+  return smallestDistance < 0.3 ? bestMatch : null;
+}
+
+// Enhanced color distance calculation
 function calculateColorDistance(color1, color2) {
-  const rDiff = color1.r - color2.r;
-  const gDiff = color1.g - color2.g;
-  const bDiff = color1.b - color2.b;
+  const rDiff = (color1.r || 0) - (color2.r || 0);
+  const gDiff = (color1.g || 0) - (color2.g || 0);
+  const bDiff = (color1.b || 0) - (color2.b || 0);
   return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff);
 }
 

@@ -238,6 +238,89 @@
       letter-spacing: normal;
       color: #333333;
     }
+
+    .suggestion-item {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .suggestion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .object-info {
+      font-size: 12px;
+      color: #666;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .current-variable {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .suggestion-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: white;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .color-preview {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+      flex-shrink: 0;
+    }
+
+    .variable-name {
+      flex: 1;
+      font-size: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+      color: #333;
+    }
+
+    .replace-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .replace-btn:hover {
+      background: #ff5722;
+    }
+
+    .replace-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .no-suggestion {
+      color: #999;
+      font-style: italic;
+      font-size: 12px;
+    }
+
+    .suggestion-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
@@ -284,12 +367,29 @@
   <!-- Detect Tab -->
   <div id="detect-tab" class="tab-content hidden">
     <div class="section">
-      <div class="section-title">Variables Used in Document</div>
+      <div class="section-title">Detect Variable Issues</div>
       <button class="button button-secondary" id="check-variables">
         Scan Document
       </button>
+      
       <div id="variables-result" class="hidden">
-        <div id="variables-list"></div>
+        <!-- Non-ShadSync Variables Section -->
+        <div id="non-shadsync-section" class="hidden">
+          <div class="section-title">Variables from Other Collections</div>
+          <div class="suggestion-list" id="non-shadsync-list"></div>
+        </div>
+        
+        <!-- Unassigned Objects Section -->
+        <div id="unassigned-section" class="hidden">
+          <div class="section-title">Objects Without Variables</div>
+          <div class="suggestion-list" id="unassigned-list"></div>
+        </div>
+        
+        <!-- Current Usage Summary -->
+        <div id="usage-summary" class="hidden">
+          <div class="section-title">Current Variable Usage</div>
+          <div id="variables-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -392,40 +492,172 @@
     // Display variables check result
     function displayVariablesResult(data) {
       const resultDiv = document.getElementById('variables-result');
-      const listDiv = document.getElementById('variables-list');
       
-      if (data.totalUsed === 0) {
-        listDiv.innerHTML = '<div class="variable-item">No variables found in the document</div>';
+      // Show/hide sections based on data
+      const nonShadSyncSection = document.getElementById('non-shadsync-section');
+      const unassignedSection = document.getElementById('unassigned-section');
+      const usageSummarySection = document.getElementById('usage-summary');
+      
+      // Non-ShadSync Variables
+      if (data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0) {
+        displayNonShadSyncVariables(data.nonShadSyncVariables);
+        nonShadSyncSection.classList.remove('hidden');
       } else {
-        let html = '';
-        
-        Object.entries(data.variablesByCollection).forEach(([collectionName, variables]) => {
-          const isMainCollection = collectionName === data.mainCollectionName;
-          html += `
-            <div class="collection-group">
-              <div class="collection-title">
-                ${collectionName} ${isMainCollection ? '(Main)' : ''}
-                <span style="color: #666; font-weight: normal;">(${variables.length} variables)</span>
-              </div>
-              <div class="variables-list">
-          `;
-          
-          variables.forEach(variable => {
-            html += `
-              <div class="variable-item">
-                ${variable.name} <span style="color: #666;">(${variable.type})</span>
-              </div>
-            `;
-          });
-          
-          html += '</div></div>';
-        });
-        
-        listDiv.innerHTML = html;
+        nonShadSyncSection.classList.add('hidden');
       }
       
-      resultDiv.classList.remove('hidden');
+      // Unassigned Objects
+      if (data.unassignedObjects && data.unassignedObjects.length > 0) {
+        displayUnassignedObjects(data.unassignedObjects);
+        unassignedSection.classList.remove('hidden');
+      } else {
+        unassignedSection.classList.add('hidden');
+      }
+      
+      // Usage Summary
+      if (data.variablesByCollection && Object.keys(data.variablesByCollection).length > 0) {
+        displayUsageSummary(data.variablesByCollection, data.mainCollectionName);
+        usageSummarySection.classList.remove('hidden');
+      } else {
+        usageSummarySection.classList.add('hidden');
+      }
+      
+      // Show results if any data exists
+      if (data.nonShadSyncVariables?.length > 0 || data.unassignedObjects?.length > 0 || data.totalUsed > 0) {
+        resultDiv.classList.remove('hidden');
+      } else {
+        const listDiv = document.getElementById('variables-list');
+        listDiv.innerHTML = '<div class="variable-item">No variable issues found! 🎉</div>';
+        resultDiv.classList.remove('hidden');
+      }
+      
       hideStatus();
+    }
+    
+    // Display variables from non-shadsync collections
+    function displayNonShadSyncVariables(nonShadSyncVariables) {
+      const listDiv = document.getElementById('non-shadsync-list');
+      let html = '';
+      
+      nonShadSyncVariables.forEach((item, index) => {
+        const hasColor = item.color && (item.color.r !== undefined || item.color.g !== undefined || item.color.b !== undefined);
+        const colorStyle = hasColor ? 
+          `background: rgb(${Math.round((item.color.r || 0) * 255)}, ${Math.round((item.color.g || 0) * 255)}, ${Math.round((item.color.b || 0) * 255)})` : 
+          'background: #ccc';
+        
+        html += `
+          <div class="suggestion-item">
+            <div class="suggestion-header">
+              <div class="object-info">${item.node.name} (${item.node.type})</div>
+            </div>
+            <div class="current-variable">
+              Currently: <strong>${item.currentVariable.name}</strong> from "${item.currentVariable.collection}"
+            </div>
+        `;
+        
+        if (item.suggestion) {
+          html += `
+            <div class="suggestion-row">
+              <div class="color-preview" style="${colorStyle}"></div>
+              <div class="variable-name">${item.suggestion.name}</div>
+              <button class="replace-btn" onclick="replaceVariable('${item.node.id}', '${item.property}', '${item.suggestion.id}')">
+                Replace
+              </button>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="no-suggestion">No matching shadsync variable found</div>
+          `;
+        }
+        
+        html += '</div>';
+      });
+      
+      listDiv.innerHTML = html;
+    }
+    
+    // Display objects without variables
+    function displayUnassignedObjects(unassignedObjects) {
+      const listDiv = document.getElementById('unassigned-list');
+      let html = '';
+      
+      unassignedObjects.forEach((item, index) => {
+        const hasColor = item.color && (item.color.r !== undefined || item.color.g !== undefined || item.color.b !== undefined);
+        const colorStyle = hasColor ? 
+          `background: rgb(${Math.round((item.color.r || 0) * 255)}, ${Math.round((item.color.g || 0) * 255)}, ${Math.round((item.color.b || 0) * 255)})` : 
+          'background: #ccc';
+        
+        html += `
+          <div class="suggestion-item">
+            <div class="suggestion-header">
+              <div class="object-info">${item.node.name} (${item.node.type})</div>
+            </div>
+            <div class="current-variable">No variable assigned</div>
+        `;
+        
+        if (item.suggestion) {
+          html += `
+            <div class="suggestion-row">
+              <div class="color-preview" style="${colorStyle}"></div>
+              <div class="variable-name">${item.suggestion.name}</div>
+              <button class="replace-btn" onclick="replaceVariable('${item.node.id}', '${item.property}', '${item.suggestion.id}')">
+                Apply
+              </button>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="no-suggestion">No matching shadsync variable found</div>
+          `;
+        }
+        
+        html += '</div>';
+      });
+      
+      listDiv.innerHTML = html;
+    }
+    
+    // Display usage summary
+    function displayUsageSummary(variablesByCollection, mainCollectionName) {
+      const listDiv = document.getElementById('variables-list');
+      let html = '';
+      
+      Object.entries(variablesByCollection).forEach(([collectionName, variables]) => {
+        const isMainCollection = collectionName === mainCollectionName;
+        html += `
+          <div class="collection-group">
+            <div class="collection-title">
+              ${collectionName} ${isMainCollection ? '(Main)' : ''}
+              <span style="color: #666; font-weight: normal;">(${variables.length} variables)</span>
+            </div>
+            <div class="variables-list">
+        `;
+        
+        variables.forEach(variable => {
+          html += `
+            <div class="variable-item">
+              ${variable.name} <span style="color: #666;">(${variable.type})</span>
+            </div>
+          `;
+        });
+        
+        html += '</div></div>';
+      });
+      
+      listDiv.innerHTML = html;
+    }
+    
+    // Replace variable function
+    function replaceVariable(nodeId, property, newVariableId) {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'replace-variable',
+          nodeId: nodeId,
+          property: property,
+          newVariableId: newVariableId
+        }
+      }, '*');
     }
 
   </script>
