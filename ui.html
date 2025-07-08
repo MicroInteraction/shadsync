@@ -855,7 +855,7 @@
         
         html += `
                 </select>
-                <button class="replace-btn" onclick="applyGroupReplacement(${groupIndex}, 'select-group-${groupIndex}')" 
+                <button class="replace-btn" id="replace-btn-${groupIndex}" data-group-index="${groupIndex}" data-select-id="select-group-${groupIndex}"
                         style="background: #ff6b35; width: 100%;">
                   Replace All ${variableGroup.objects.length} Objects
                 </button>
@@ -893,6 +893,24 @@
       
       // Store the grouped data for replacement functionality
       window.nonShadSyncGroups = nonShadSyncVariables;
+      
+      // Add event listeners to replace buttons
+      setTimeout(() => {
+        nonShadSyncVariables.forEach((variableGroup, index) => {
+          const button = document.getElementById(`replace-btn-${index}`);
+          if (button) {
+            console.log(`Adding event listener to button ${index}`);
+            button.addEventListener('click', function() {
+              console.log(`Button ${index} clicked`);
+              const buttonGroupIndex = parseInt(this.getAttribute('data-group-index'));
+              const selectId = this.getAttribute('data-select-id');
+              window.applyGroupReplacement(buttonGroupIndex, selectId);
+            });
+          } else {
+            console.error(`Button not found: replace-btn-${index}`);
+          }
+        });
+      }, 100);
     }
     
     // Display objects without variables
