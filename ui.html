@@ -1170,23 +1170,23 @@
       allVariableAssigned.forEach((variableGroup, groupIndex) => {
         const isShadsyncVariable = variableGroup.currentVariable.collection === 'shadsync theme';
         const isReplaced = variableGroup.replaced === true;
-        const borderColor = isReplaced ? '#4caf50' : (isShadsyncVariable ? '#4caf50' : '#ff6b35');
-        const backgroundColor = isReplaced ? '#f1f8e9' : '#f8f9fa';
-        const badgeColor = isReplaced ? '#4caf50' : (isShadsyncVariable ? '#4caf50' : '#ff6b35');
-        const textColor = isReplaced ? '#2e7d32' : '#333';
+        const borderColor = isReplaced ? '#39DFD1' : (isShadsyncVariable ? '#39DFD1' : '#ff6b35');
+        const backgroundColor = isReplaced ? '#f0fffe' : '#f8f9fa';
+        const badgeColor = isReplaced ? '#39DFD1' : (isShadsyncVariable ? '#39DFD1' : '#ff6b35');
+        const textColor = isReplaced ? '#065f46' : '#333';
         
         // Use the cleaner suggestion-item layout
         html += `
           <div class="suggestion-item" style="border-left: 4px solid ${borderColor}; background: ${backgroundColor};">
             <div class="suggestion-header">
-              <div class="object-info" style="color: ${textColor}; display: flex; justify-content: space-between; align-items: center;">
+              <div class="object-info" style="color: ${textColor}; display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <strong>${variableGroup.currentVariable.name}</strong>
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
                   <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">
                     ${variableGroup.objects.length} object${variableGroup.objects.length !== 1 ? 's' : ''}
                   </span>
-                  ${isReplaced ? '<span style="color: #4caf50; font-size: 12px;">✅ Replaced</span>' : ''}
-                  ${isShadsyncVariable && !isReplaced ? '<span style="color: #4caf50; font-size: 12px;">✅ Already ShadSync</span>' : ''}
+                  ${isReplaced ? '<span style="color: #39DFD1; font-size: 12px;">✅ Replaced</span>' : ''}
+                  ${isShadsyncVariable && !isReplaced ? '<span style="color: #39DFD1; font-size: 12px;">✅ Already ShadSync</span>' : ''}
                 </div>
               </div>
             </div>
@@ -1396,15 +1396,15 @@
       
       // Visual feedback: mark as applied
       if (button) {
-        button.style.background = '#4caf50';
+        button.style.background = '#39DFD1';
         button.textContent = '✅ Applied';
         button.disabled = true;
       }
       
       // Update the card visual appearance
       if (container) {
-        container.style.borderLeftColor = '#4caf50';
-        container.style.background = '#f1f8e9';
+        container.style.borderLeftColor = '#39DFD1';
+        container.style.background = '#f0fffe';
         
         // Update text colors
         const objectInfo = container.querySelector('.object-info');
@@ -1416,7 +1416,7 @@
         if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
           const successSpan = document.createElement('span');
           successSpan.className = 'success-indicator';
-          successSpan.style.cssText = 'color: #4caf50; font-size: 12px; margin-left: 8px;';
+          successSpan.style.cssText = 'color: #39DFD1; font-size: 12px; margin-left: 8px;';
           successSpan.textContent = '✅ Applied';
           objectInfo.appendChild(successSpan);
         }
@@ -1658,7 +1658,7 @@
       // Visual feedback: mark as applying
       const button = document.getElementById(`replace-all-btn-${groupIndex}`);
       if (button) {
-        button.style.background = '#4caf50';
+        button.style.background = '#39DFD1';
         button.textContent = '✅ Replaced';
         button.disabled = true;
       }
@@ -1671,20 +1671,20 @@
       // Update the card visual appearance
       const card = button.closest('.suggestion-item');
       if (card) {
-        card.style.borderLeftColor = '#4caf50';
-        card.style.background = '#f1f8e9';
+        card.style.borderLeftColor = '#39DFD1';
+        card.style.background = '#f0fffe';
         
         // Update text colors
         const objectInfo = card.querySelector('.object-info');
         const currentVariable = card.querySelector('.current-variable');
-        if (objectInfo) objectInfo.style.color = '#2e7d32';
-        if (currentVariable) currentVariable.style.color = '#2e7d32';
+        if (objectInfo) objectInfo.style.color = '#065f46';
+        if (currentVariable) currentVariable.style.color = '#065f46';
         
         // Add success checkmark to header
         if (objectInfo && !objectInfo.querySelector('.success-indicator')) {
           const successSpan = document.createElement('span');
           successSpan.className = 'success-indicator';
-          successSpan.style.cssText = 'color: #4caf50; font-size: 12px; margin-left: 8px;';
+          successSpan.style.cssText = 'color: #39DFD1; font-size: 12px; margin-left: 8px;';
           successSpan.textContent = '✅ Replaced';
           objectInfo.appendChild(successSpan);
         }
