@@ -1001,26 +1001,30 @@
       const usageSummarySection = document.getElementById('usage-summary');
       const allClearMessage = document.getElementById('all-clear-message');
       
-      // Priority 1: Non-ShadSync Variables (most important)
-      if (data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0) {
-        displayNonShadSyncVariables(data.nonShadSyncVariables);
-        nonShadSyncSection.classList.remove('hidden');
-        
-        // Enable Replace All button
-        const replaceAllBtn = document.getElementById('replace-all-btn');
+      // Handle Replace All button state - enable if any variables can be replaced
+      const replaceAllBtn = document.getElementById('replace-all-btn');
+      const hasNonShadSync = data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0;
+      const hasAllVariablesWithSuggestions = data.allVariableAssigned && 
+        data.allVariableAssigned.some(group => group.suggestion && group.suggestion.id);
+      
+      if (hasNonShadSync || hasAllVariablesWithSuggestions) {
         if (replaceAllBtn) {
           replaceAllBtn.disabled = false;
           replaceAllBtn.style.opacity = '1';
         }
       } else {
-        nonShadSyncSection.classList.add('hidden');
-        
-        // Disable Replace All button
-        const replaceAllBtn = document.getElementById('replace-all-btn');
         if (replaceAllBtn) {
           replaceAllBtn.disabled = true;
           replaceAllBtn.style.opacity = '0.5';
         }
+      }
+      
+      // Priority 1: Non-ShadSync Variables (most important)
+      if (data.nonShadSyncVariables && data.nonShadSyncVariables.length > 0) {
+        displayNonShadSyncVariables(data.nonShadSyncVariables);
+        nonShadSyncSection.classList.remove('hidden');
+      } else {
+        nonShadSyncSection.classList.add('hidden');
       }
       
       // Priority 2: All Variable-Assigned Objects (for review and optimization)
